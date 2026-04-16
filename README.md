@@ -1,124 +1,136 @@
-# 📌 CareerIQ — AI Resume Intelligence Platform
+<div align="center">
 
-> **The ultimate bridge between your resume and your dream job.**
-> CareerIQ is a professional-grade platform that leverages Large Language Models (LLMs) to provide deep resume analysis, skill gap detection, and personalized career coaching.
+<h1>🎯 CareerIQ</h1>
 
----
+<p><strong>AI-powered resume intelligence that gets you past the ATS and into the interview room.</strong></p>
 
-# 🚀 Overview
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![React](https://img.shields.io/badge/React-18-61DAFB?style=flat-square&logo=react&logoColor=black)](https://react.dev)
+[![Groq](https://img.shields.io/badge/Groq-Llama%203.3-F54E00?style=flat-square)](https://groq.com)
+[![Docker](https://img.shields.io/badge/Docker-ready-2496ED?style=flat-square&logo=docker&logoColor=white)](https://docker.com)
+[![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)](LICENSE)
 
-**CareerIQ** solves the "ATS Black Hole" problem. Most job seekers never hear back because their resumes aren't optimized for Applicant Tracking Systems (ATS). This project provides a transparent, AI-driven evaluation of how a resume matches a specific Job Description (JD).
-
-### The Problem
-- **Keyword Mismatch**: Missing critical technical skills mentioned in the JD.
-- **Formatting Issues**: Resumes that look great to humans but are unreadable to parsers.
-- **Weak Quantification**: Bullet points that lack measurable impact.
-
-### The Solution: CareerIQ
-- **Deep Analysis**: Uses sentence-level semantic similarity to score resumes.
-- **Actionable Coaching**: Generates improved bullet points, cover letters, and roadmaps.
-- **Live Job Matching**: connects users directly to relevant roles based on their true skill set.
+</div>
 
 ---
 
-# 🧠 Features
+## The Problem
 
-- **✅ Deep Resume Scoring**: Comprehensive ATS compatibility check with detailed scoring on keywords, formatting, and clarity.
-- **🔍 Skill Gap Analysis**: Automatically identifies missing critical keywords and categorizes them by importance.
-- **🤖 AI Career Coach**: 
-  - **Bullet Rewriter**: Transforms weak phrases into high-impact, quantified achievements.
-  - **Interview Prep**: Generates 5 technical and 3 behavioral questions tailored to the candidate.
-  - **LinkedIn Summary**: Creates a punchy, keyword-optimized "About" section.
-- **💼 Live Job Recommendations**: Fetches real-time job listings from the JSearch API based on detected skills.
-- **📊 Premium Visualizations**: Interactive radar charts, skill gap bars, and animated score rings for a 10/10 UX.
+Over **75% of resumes** are rejected by Applicant Tracking Systems before a human ever reads them — not because the candidate is unqualified, but because of keyword mismatches, formatting issues, and weak impact statements. CareerIQ fixes this with transparent, AI-driven feedback.
 
 ---
 
-# 🏗️ Tech Stack
+## What CareerIQ Does
 
-### Frontend
-- **React 18** + **Vite**: Ultra-fast development and optimized builds.
-- **Tailwind CSS**: Modern styling with custom glassmorphism effects.
-- **Framer Motion**: Smooth micro-animations and transitions.
-- **Recharts**: Data visualization for scoring and skill gaps.
+CareerIQ takes your resume and a target job description, then delivers:
 
-### Backend
-- **FastAPI (Python)**: High-performance, asynchronous REST API.
-- **Groq (Llama 3.3/3.1)**: State-of-the-art LLMs for nearly-instant AI coaching.
-- **Sentence-Transformers**: `all-MiniLM-L6-v2` for semantic matching.
-- **PDFPlumber & Python-Docx**: Robust multi-stage text extraction.
-
-### Infrastructure & Tools
-- **Docker & Docker Compose**: For seamless, one-command deployment.
-- **RapidAPI (JSearch)**: Powering the live job recommendation engine.
+- **ATS Compatibility Score** — See exactly how your resume ranks across keywords, formatting, and clarity
+- **Skill Gap Analysis** — Pinpoints missing keywords, ranked by how critical they are to the role
+- **AI Career Coach** — Three tools powered by Llama 3.3:
+  - *Bullet Rewriter*: Turns vague phrases into quantified, action-verb-led achievements
+  - *Interview Prep*: Generates 5 technical + 3 behavioral questions tailored to you
+  - *LinkedIn Summary*: Writes a keyword-optimized "About" section
+- **Live Job Recommendations** — Real-time listings via JSearch API matched to your actual skills
+- **Rich Visualizations** — Animated score rings, radar charts, and skill gap bars
 
 ---
 
-# 📂 Project Structure
+## Tech Stack
 
-```bash
-ai-resume-analyzer/
-├── backend/                  
-│   ├── main.py               # FastAPI entrypoint + Routing
-│   ├── routers/              # API endpoint definitions (Analyze, Coach, Jobs)
-│   ├── services/             # Core Logic (LLM, Similarity, Parsing)
-│   │   ├── parser.py         # Multi-stage PDF/DOCX extraction
-│   │   ├── ai_coach.py       # Prompt engineering for AI career advice
-│   │   └── job_fetcher.py    # Live job API integration
+| Layer | Technologies |
+|---|---|
+| **Frontend** | React 18, Vite, Tailwind CSS, Framer Motion, Recharts |
+| **Backend** | FastAPI (Python 3.10+), Groq (Llama 3.3-70b), Sentence-Transformers |
+| **Parsing** | PDFPlumber (primary), PyPDF2 (fallback), Python-Docx |
+| **Infrastructure** | Docker, Docker Compose |
+| **External APIs** | Groq API (free), RapidAPI JSearch |
+
+**Semantic model**: `all-MiniLM-L6-v2` — measures meaning, not just keyword presence.  
+**Inference engine**: Groq — delivers AI coaching responses in under 500ms.
+
+---
+
+## Project Structure
+
+```
+CareerIQ/
+├── backend/
+│   ├── main.py                   # FastAPI entrypoint & routing
+│   ├── routers/
+│   │   ├── analyze.py            # Resume scoring endpoints
+│   │   ├── coach.py              # AI coaching endpoints
+│   │   └── jobs.py               # Live job recommendation endpoints
+│   ├── services/
+│   │   ├── parser.py             # Multi-stage PDF/DOCX text extraction
+│   │   ├── ai_coach.py           # LLM prompt engineering & coaching logic
+│   │   └── job_fetcher.py        # JSearch API integration
 │   ├── Dockerfile
-│   └── requirements.txt      # Python dependencies
-├── frontend/                 
+│   └── requirements.txt
+├── frontend/
 │   ├── src/
-│   │   ├── components/       # UI (Dashboard, Loading, SkillBadge)
-│   │   ├── hooks/            # useAnalysis.js (State management)
-│   │   └── services/         # api.js (Axios client)
+│   │   ├── components/           # Dashboard, SkillBadge, Loading, etc.
+│   │   ├── hooks/
+│   │   │   └── useAnalysis.js    # Global state management
+│   │   └── services/
+│   │       └── api.js            # Axios API client
 │   ├── index.html
 │   ├── Dockerfile
-│   └── tailwind.config.js    # Design system tokens
-└── docker-compose.yml        # Multi-container orchestration
+│   └── tailwind.config.js
+├── docker-compose.yml
+└── .env                          # API keys (not committed)
 ```
 
 ---
 
-# ⚙️ Setup & Installation Guide
+## Getting Started
 
 ### Prerequisites
+
 - Python 3.10+
 - Node.js 18+
-- [Groq API Key](https://console.groq.com/) (Free)
-- [RapidAPI Key](https://rapidapi.com/) (For JSearch)
+- [Groq API Key](https://console.groq.com/) — free, no credit card required
+- [RapidAPI Key](https://rapidapi.com/letscrape-6bRBa3QguO5/api/jsearch) — for live job listings
 
-### 1. Clone the Repository
+### 1. Clone
+
 ```bash
-git clone https://github.com/your-username/ai-resume-analyzer.git
-cd ai-resume-analyzer
+git clone https://github.com/Ayush0915/CareerIQ.git
+cd CareerIQ
 ```
 
-### 2. Environment Setup
-Create a `.env` file in the root directory:
+### 2. Configure environment
+
+Create a `.env` file in the project root:
+
 ```env
 GROQ_API_KEY=your_groq_key_here
 RAPIDAPI_KEY=your_rapidapi_key_here
 ```
 
-### 3. Option A: Run with Docker (Easiest)
+### 3a. Run with Docker (recommended)
+
 ```bash
 docker-compose up --build
 ```
-- Frontend: `http://localhost:5173`
-- Backend Docs: `http://localhost:8000/docs`
 
-### 4. Option B: Manual Setup
+| Service | URL |
+|---|---|
+| Frontend | http://localhost:5173 |
+| Backend API | http://localhost:8000 |
+| API Docs (Swagger) | http://localhost:8000/docs |
+
+### 3b. Run manually
+
 **Backend:**
 ```bash
 cd backend
 python -m venv venv
-source venv/bin/activate  # Or venv\Scripts\activate on Windows
+source venv/bin/activate        # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 uvicorn main:app --reload --port 8000
 ```
 
-**Frontend:**
+**Frontend** (in a separate terminal):
 ```bash
 cd frontend
 npm install
@@ -127,59 +139,112 @@ npm run dev
 
 ---
 
-# 🔑 Environment Variables
+## How It Works
 
-- `GROQ_API_KEY`: Required to power the AI Coaching features (Llama 3.3).
-- `RAPIDAPI_KEY`: Required to fetch live job listings via the JSearch API.
-- `VITE_API_URL`: (Frontend) Defaults to `http://localhost:8000/api/v1`.
+### Resume Parsing (`services/parser.py`)
 
----
-
-# 💻 Code Explanation
-
-### 1. Multi-Stage Resume Parsing (`parser.py`)
-This function handles the critical task of turning a binary file (PDF/DOCX) into clean text for AI analysis.
+Reliable text extraction is the foundation of accurate analysis. The parser uses a multi-stage approach to handle the wide variety of resume formats in the wild:
 
 ```python
 def parse_resume(file_path: str) -> dict:
-    # 1. Validate size to prevent DOS
-    validate_file_size(file_path)
-    
-    # 2. Extract based on extension
+    validate_file_size(file_path)           # Block oversized files (DOS prevention)
+
     if ext == "pdf":
-        raw_text = extract_text_from_pdf(file_path) # Uses PDFPlumber with fallback
+        raw_text = extract_text_from_pdf(file_path)   # PDFPlumber → PyPDF2 fallback
     elif ext == "docx":
         raw_text = extract_text_from_docx(file_path)
-    
-    # 3. Clean and Extract Metadata
-    contact_info = extract_contact_info(raw_text) # Regex-based extraction
-    cleaned = clean_text(raw_text) # Normalizes whitespace/chars
-    
+
+    contact_info = extract_contact_info(raw_text)     # Regex-based metadata extraction
+    cleaned = clean_text(raw_text)                    # Normalize whitespace & encoding
+
     return {"clean_text": cleaned, "contact_info": contact_info}
 ```
-**Why this matters:**
-- **Robustness**: It uses a multi-stage approach (PDFPlumber first, then PyPDF2 fallback) to handle complex multi-column resumes that usually break standard parsers.
-- **Security**: Includes file size validation and isolated processing.
 
-### 2. AI Bullet Rewriting (`ai_coach.py`)
-This is the core of the "Career Coach" feature, using prompt engineering to transform weak resumes.
+**Why multi-stage?** PDFPlumber handles most resumes well, but multi-column layouts and scanned documents can break it. The PyPDF2 fallback recovers text in cases that would otherwise silently fail and return an empty analysis.
+
+---
+
+### Semantic Scoring
+
+CareerIQ doesn't just count keyword matches. It uses `sentence-transformers/all-MiniLM-L6-v2` to compute **cosine similarity** between resume sentences and job description requirements. This means a resume mentioning "built and shipped REST APIs" will still match a JD asking for "API development experience" — even with zero word overlap.
+
+---
+
+### AI Coaching (`services/ai_coach.py`)
+
+Each coaching feature uses a structured prompt that enforces output quality through explicit constraints:
 
 ```python
-def rewrite_bullets(weak_phrases, resume_text, job_description):
-    prompt = f"""Rewrite 4 improved bullet points. Rules:
-    - Start with strong past-tense action verbs
-    - Include specific numbers (quantification)
-    - Align to keywords: {job_description[:500]}
-    """
-    return client.chat.completions.create(
+def rewrite_bullets(weak_phrases: list, resume_text: str, job_description: str) -> str:
+    prompt = f"""You are an expert resume coach. Rewrite the following into 4 improved bullet points.
+
+Rules:
+- Start each bullet with a strong past-tense action verb (Led, Built, Reduced, Increased...)
+- Include at least one specific metric or quantified outcome per bullet
+- Align language to these target keywords: {job_description[:500]}
+- Do not use filler phrases like "responsible for" or "helped with"
+
+Weak phrases to improve:
+{weak_phrases}
+
+Resume context:
+{resume_text[:1000]}
+"""
+    response = client.chat.completions.create(
         model="llama-3.3-70b-versatile",
         messages=[{"role": "user", "content": prompt}]
     )
+    return response.choices[0].message.content
 ```
-**How it works:**
-1.  **Context Injection**: We feed both the resume text AND the Target JD into the LLM.
-2.  **Constraint Enforcement**: The prompt mandates specific components (numbers, action verbs) to ensure high-quality output.
-3.  **Speed**: Using the Groq inference engine, this generates responses in <500ms.
+
+**Design decisions:**
+- **Context injection**: Both the resume and job description are fed in so the rewrite is grounded in the candidate's actual experience — not hallucinated.
+- **Constraint-based prompting**: Explicit rules ("do not use filler phrases") consistently outperform soft guidance ("make it better") for structured output tasks.
+- **Groq inference**: The same prompt on OpenAI's API takes 3–8 seconds. Groq's hardware delivers it in under 500ms, which matters for UX.
 
 ---
-*Created by [Your Name/Handle]*
+
+## API Reference
+
+The full interactive API reference is available at `http://localhost:8000/docs` when running locally.
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/api/v1/analyze` | Upload resume + JD, returns full scoring |
+| `POST` | `/api/v1/coach/bullets` | Rewrite weak bullet points |
+| `POST` | `/api/v1/coach/interview` | Generate interview questions |
+| `POST` | `/api/v1/coach/linkedin` | Generate LinkedIn summary |
+| `GET` | `/api/v1/jobs` | Fetch live job recommendations |
+
+---
+
+## Environment Variables
+
+| Variable | Required | Description |
+|---|---|---|
+| `GROQ_API_KEY` | Yes | Powers all AI coaching features (Llama 3.3) |
+| `RAPIDAPI_KEY` | Yes | Fetches live job listings via JSearch |
+| `VITE_API_URL` | No | Frontend API base URL. Defaults to `http://localhost:8000/api/v1` |
+
+---
+
+## Contributing
+
+Contributions are welcome. Please open an issue before submitting a pull request for significant changes.
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/your-feature`
+3. Commit your changes: `git commit -m 'Add your feature'`
+4. Push and open a pull request
+
+---
+
+## License
+
+MIT — see [LICENSE](LICENSE) for details.
+
+---
+
+<div align="center">
+<p>Built by <a href="https://github.com/Ayush0915">Ayush0915</a></p>
+</div>

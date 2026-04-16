@@ -1,0 +1,30 @@
+# Web framework
+fastapi
+uvicorn[standard]
+python-multipart
+
+# Validation
+pydantic
+
+# AI / ML
+sentence-transformers
+scikit-learn
+numpy
+groq
+
+# PDF parsing (pdfplumber preferred, PyPDF2 as fallback)
+pdfplumber
+PyPDF2
+
+# DOCX
+python-docx
+
+# Data
+pandas
+
+# HTTP
+httpx
+requests
+
+# Env
+python-dotenv

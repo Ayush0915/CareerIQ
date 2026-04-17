@@ -10,13 +10,18 @@ import SkillBadge from './SkillBadge'
 import LLMInsights from './LLMInsights'
 import JobRecommendations from './JobRecommendations'
 import CourseRecommendations from './CourseRecommendations'
+import ATSBreakdown from './ATSBreakdown'
+import InterviewPrep from './InterviewPrep'
+import { ShieldCheck, MessageSquare } from 'lucide-react'
 
 const TABS = [
-  { id:'overview', label:'Overview',    icon:BarChart3  },
-  { id:'skills',   label:'Skills',      icon:Target     },
-  { id:'ai',       label:'AI Analysis', icon:Brain      },
-  { id:'jobs',     label:'Live Jobs',   icon:Briefcase  },
-  { id:'courses',  label:'Courses',     icon:BookOpen   },
+  { id:'overview',   label:'Overview',    icon:BarChart3     },
+  { id:'skills',     label:'Skills',      icon:Target        },
+  { id:'ai',         label:'AI Analysis', icon:Brain         },
+  { id:'ats',        label:'ATS Report',  icon:ShieldCheck   },
+  { id:'interview',  label:'Interview',   icon:MessageSquare },
+  { id:'jobs',       label:'Live Jobs',   icon:Briefcase     },
+  { id:'courses',    label:'Courses',     icon:BookOpen      },
 ]
 
 /* ── helpers ── */
@@ -371,7 +376,9 @@ export default function ResultsDashboard({ data, onReset }) {
           <div key={activeTab}>
             {activeTab === 'overview' && <OverviewTab data={data} />}
             {activeTab === 'skills'   && <SkillsTab data={data} />}
-            {activeTab === 'ai'       && <div className="animate-fade-up"><LLMInsights llm={data.llm_evaluation} experience={data.experience_info} sectionScores={data.section_scores} /></div>}
+            {activeTab === 'ai'        && <div className="animate-fade-up"><LLMInsights llm={data.llm_evaluation} experience={data.experience_info} sectionScores={data.section_scores} /></div>}
+            {activeTab === 'ats'       && <div className="animate-fade-up"><ATSBreakdown atsData={data.ats_simulation} /></div>}
+            {activeTab === 'interview' && <div className="animate-fade-up"><InterviewPrep llm={data.llm_evaluation} /></div>}
             {activeTab === 'jobs'     && <div className="animate-fade-up"><JobRecommendations skills={data.resume_skills} /></div>}
             {activeTab === 'courses'  && <div className="animate-fade-up"><CourseRecommendations skillGaps={data.skill_gap_analysis} /></div>}
           </div>

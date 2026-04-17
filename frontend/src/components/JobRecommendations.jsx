@@ -1,133 +1,123 @@
 import React, { useState, useEffect } from 'react'
-import { Briefcase, MapPin, ExternalLink, Loader2, Globe, Wifi, Search, Building2, Clock, ChevronRight, IndianRupee } from 'lucide-react'
+import { Briefcase, MapPin, ExternalLink, Globe, Search, Building2, Clock, ChevronRight } from 'lucide-react'
 import { getJobRecommendations } from '../services/api'
 
 const TABS = [
-  { key: 'all', label: 'All Jobs' },
-  { key: 'india', label: '🇮🇳 India' },
-  { key: 'remote', label: '🌐 Remote' },
-  { key: 'us', label: '🇺🇸 US' },
-  { key: 'uk', label: '🇬🇧 UK' },
+  { key: 'all',    label: 'All Jobs' },
+  { key: 'india',  label: 'India' },
+  { key: 'remote', label: 'Remote' },
+  { key: 'us',     label: 'US' },
+  { key: 'uk',     label: 'UK' },
 ]
 
 const LOCATIONS = ['India', 'Remote', 'United States', 'United Kingdom', 'Singapore', 'Canada']
 
-function JobCard({ job, index }) {
+function matchBadgeStyle(score) {
+  if (score >= 70) return { background:'#F0FDF4', border:'1px solid #BBF7D0', color:'#16A34A' }
+  if (score >= 40) return { background:'#FFFBEB', border:'1px solid #FDE68A', color:'#D97706' }
+  return { background:'#F5F6FA', border:'1px solid #E8EAF0', color:'#9CA3AF' }
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return ''
+  try {
+    const days = Math.floor((new Date() - new Date(dateStr)) / 86400000)
+    if (days === 0) return 'Today'
+    if (days === 1) return 'Yesterday'
+    if (days < 7) return `${days}d ago`
+    if (days < 30) return `${Math.floor(days / 7)}w ago`
+    return `${Math.floor(days / 30)}mo ago`
+  } catch { return '' }
+}
+
+function JobCard({ job }) {
   const [expanded, setExpanded] = useState(false)
-
-  const matchColor = job.match_score >= 70
-    ? 'text-green-600 bg-green-50 border-green-200'
-    : job.match_score >= 40
-    ? 'text-amber-600 bg-amber-50 border-amber-200'
-    : 'text-gray-400 bg-gray-50 border-gray-200'
-
-  const formatDate = (dateStr) => {
-    if (!dateStr) return ''
-    try {
-      const days = Math.floor((new Date() - new Date(dateStr)) / 86400000)
-      if (days === 0) return 'Today'
-      if (days === 1) return 'Yesterday'
-      if (days < 7) return `${days}d ago`
-      if (days < 30) return `${Math.floor(days / 7)}w ago`
-      return `${Math.floor(days / 30)}mo ago`
-    } catch { return '' }
-  }
+  const ms = matchBadgeStyle(job.match_score)
 
   return (
     <div
-      className="card hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer group overflow-hidden"
+      className="ev-card"
       onClick={() => setExpanded(!expanded)}
+      style={{ cursor:'pointer', padding:18, transition:'all 0.15s' }}
+      onMouseEnter={e => e.currentTarget.style.boxShadow='0 4px 16px rgba(0,0,0,0.1)'}
+      onMouseLeave={e => e.currentTarget.style.boxShadow=''}
     >
-      <div className="p-5">
-        <div className="flex items-start gap-4">
-          {/* Company Logo */}
-          <div className="w-10 h-10 rounded-xl border border-gray-100 bg-gray-50 flex items-center justify-center shrink-0 overflow-hidden">
-            {job.logo ? (
-              <img src={job.logo} alt={job.company} className="w-full h-full object-contain p-1" onError={e => e.target.style.display='none'} />
-            ) : (
-              <Building2 size={18} className="text-gray-300" />
-            )}
-          </div>
-
-          <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <h3 className="font-semibold text-gray-800 group-hover:text-primary transition-colors leading-tight">
-                  {job.title}
-                </h3>
-                <p className="text-sm text-gray-500 mt-0.5">{job.company}</p>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                {job.match_score > 0 && (
-                  <span className={`text-xs font-bold px-2.5 py-1 rounded-full border ${matchColor}`}>
-                    {job.match_score}%
-                  </span>
-                )}
-                <ChevronRight
-                  size={16}
-                  className={`text-gray-300 transition-transform duration-200 ${expanded ? 'rotate-90' : ''}`}
-                />
-              </div>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2 mt-2">
-              <span className="flex items-center gap-1 text-xs text-gray-400">
-                <MapPin size={11} /> {job.location}
-              </span>
-              {job.type && (
-                <span className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full border border-blue-100">
-                  {job.type}
-                </span>
-              )}
-              {job.remote && (
-                <span className="text-xs bg-green-50 text-green-600 px-2 py-0.5 rounded-full border border-green-100">
-                  Remote
-                </span>
-              )}
-              {job.salary && (
-                <span className="text-xs text-green-600 font-medium flex items-center gap-0.5">
-                  {job.salary}
-                </span>
-              )}
-              {job.posted_at && (
-                <span className="flex items-center gap-1 text-xs text-gray-300">
-                  <Clock size={10} /> {formatDate(job.posted_at)}
-                </span>
-              )}
-              {job.source && (
-                <span className="text-xs text-gray-300">via {job.source}</span>
-              )}
-            </div>
-
-            {job.tags && job.tags.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mt-2">
-                {job.tags.slice(0, 5).map((tag, i) => (
-                  <span key={i} className="text-xs bg-gray-50 border border-gray-200 text-gray-500 px-2 py-0.5 rounded-full">
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
+      <div style={{ display:'flex', alignItems:'flex-start', gap:14 }}>
+        {/* Logo */}
+        <div style={{ width:40, height:40, borderRadius:10, border:'1px solid #E8EAF0', background:'#F8F9FC', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, overflow:'hidden' }}>
+          {job.logo ? (
+            <img src={job.logo} alt={job.company} style={{ width:'100%', height:'100%', objectFit:'contain', padding:4 }} onError={e => e.target.style.display='none'} />
+          ) : (
+            <Building2 size={16} color="#D1D5DB" />
+          )}
         </div>
 
-        {/* Expanded Details */}
-        {expanded && (
-          <div className="mt-4 pt-4 border-t border-gray-100 animate-fade-up">
-            {job.description && (
-              <p className="text-sm text-gray-600 leading-relaxed mb-4">{job.description}...</p>
-            )}
-            <a
-              href={job.url}
-              target="_blank"
-              rel="noreferrer"
-              onClick={e => e.stopPropagation()}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm font-semibold rounded-lg hover:bg-primary-dark transition-colors"
-            >
-              Apply Now <ExternalLink size={14} />
-            </a>
+        <div style={{ flex:1, minWidth:0 }}>
+          <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:10 }}>
+            <div style={{ minWidth:0 }}>
+              <h3 style={{ fontWeight:600, fontSize:'0.875rem', color:'#1A1D2E', margin:'0 0 2px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                {job.title}
+              </h3>
+              <p style={{ fontSize:'0.78rem', color:'#6B7280', margin:0 }}>{job.company}</p>
+            </div>
+            <div style={{ display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
+              {job.match_score > 0 && (
+                <span style={{ fontSize:'0.68rem', fontWeight:700, padding:'3px 9px', borderRadius:99, ...ms }}>
+                  {job.match_score}%
+                </span>
+              )}
+              <ChevronRight size={14} color="#D1D5DB" style={{ transform: expanded ? 'rotate(90deg)' : 'none', transition:'transform 0.2s' }} />
+            </div>
           </div>
-        )}
+
+          <div style={{ display:'flex', flexWrap:'wrap', alignItems:'center', gap:8, marginTop:8 }}>
+            <span style={{ display:'flex', alignItems:'center', gap:3, fontSize:'0.7rem', color:'#9CA3AF' }}>
+              <MapPin size={10} /> {job.location}
+            </span>
+            {job.type && (
+              <span style={{ fontSize:'0.68rem', background:'#EFF6FF', border:'1px solid #BFDBFE', color:'#2563EB', padding:'2px 8px', borderRadius:99 }}>{job.type}</span>
+            )}
+            {job.remote && (
+              <span style={{ fontSize:'0.68rem', background:'#F0FDF4', border:'1px solid #BBF7D0', color:'#16A34A', padding:'2px 8px', borderRadius:99, display:'flex', alignItems:'center', gap:3 }}>
+                <Globe size={9} /> Remote
+              </span>
+            )}
+            {job.salary && (
+              <span style={{ fontSize:'0.68rem', color:'#16A34A', fontWeight:600 }}>{job.salary}</span>
+            )}
+            {job.posted_at && (
+              <span style={{ display:'flex', alignItems:'center', gap:3, fontSize:'0.68rem', color:'#D1D5DB' }}>
+                <Clock size={9} /> {formatDate(job.posted_at)}
+              </span>
+            )}
+          </div>
+
+          {job.tags && job.tags.length > 0 && (
+            <div style={{ display:'flex', flexWrap:'wrap', gap:5, marginTop:8 }}>
+              {job.tags.slice(0, 5).map((tag, i) => (
+                <span key={i} style={{ fontSize:'0.65rem', background:'#F5F6FA', border:'1px solid #E8EAF0', color:'#6B7280', padding:'2px 7px', borderRadius:99 }}>{tag}</span>
+              ))}
+            </div>
+          )}
+
+          {expanded && (
+            <div style={{ marginTop:14, paddingTop:14, borderTop:'1px solid #F0F1F5' }} className="animate-fade-in">
+              {job.description && (
+                <p style={{ fontSize:'0.82rem', color:'#6B7280', lineHeight:1.6, marginBottom:12 }}>{job.description}...</p>
+              )}
+              <a
+                href={job.url}
+                target="_blank"
+                rel="noreferrer"
+                onClick={e => e.stopPropagation()}
+                className="btn-primary"
+                style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'8px 16px', fontSize:'0.8rem', textDecoration:'none' }}
+              >
+                Apply Now <ExternalLink size={12} />
+              </a>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
@@ -142,7 +132,7 @@ export default function JobRecommendations({ skills }) {
   const [location, setLocation] = useState('India')
   const [loaded, setLoaded] = useState(false)
 
-const loadJobs = async (loc = location) => {
+  const loadJobs = async (loc = location) => {
     try {
       setLoading(true)
       setError(null)
@@ -169,130 +159,129 @@ const loadJobs = async (loc = location) => {
   })
 
   const tabCounts = TABS.reduce((acc, tab) => {
-    acc[tab.key] = tab.key === 'all'
-      ? jobs.length
-      : jobs.filter(j => j.region === tab.key).length
+    acc[tab.key] = tab.key === 'all' ? jobs.length : jobs.filter(j => j.region === tab.key).length
     return acc
   }, {})
 
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="card p-5">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <Briefcase size={20} className="text-primary" />
-            <h2 className="font-bold text-gray-800 text-lg">Live Job Recommendations</h2>
+    <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+
+      {/* Header card */}
+      <div className="ev-card" style={{ padding:20 }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16 }}>
+          <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+            <Briefcase size={18} color="#5147E5" />
+            <h2 style={{ fontWeight:700, fontSize:'1rem', color:'#1A1D2E', margin:0 }}>Live Job Recommendations</h2>
             {loaded && !loading && (
-              <span className="text-xs bg-primary-light text-primary px-2 py-0.5 rounded-full font-medium">
-                {jobs.length} jobs found
-              </span>
+              <span className="ev-badge ev-badge-accent" style={{ fontSize:'0.65rem' }}>{jobs.length} jobs</span>
             )}
           </div>
-          <span className="text-xs text-gray-400">Powered by LinkedIn · Indeed · Glassdoor</span>
+          <span style={{ fontSize:'0.68rem', color:'#9CA3AF' }}>LinkedIn · Indeed · Glassdoor</span>
         </div>
 
-        {/* Location + Search + Fetch */}
-        <div className="flex flex-col sm:flex-row gap-3">
+        <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
           <select
             value={location}
             onChange={e => setLocation(e.target.value)}
-            className="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-primary bg-white text-gray-600"
+            className="ev-input"
+            style={{ width:'auto', padding:'8px 12px', fontSize:'0.82rem' }}
           >
-            {LOCATIONS.map(loc => (
-              <option key={loc} value={loc}>{loc}</option>
-            ))}
+            {LOCATIONS.map(loc => <option key={loc} value={loc}>{loc}</option>)}
           </select>
 
-          <div className="flex-1 relative">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <div style={{ flex:1, position:'relative', minWidth:160 }}>
+            <Search size={13} style={{ position:'absolute', left:10, top:'50%', transform:'translateY(-50%)', color:'#9CA3AF' }} />
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Search job title or company..."
-              className="w-full text-sm border border-gray-200 rounded-lg pl-8 pr-3 py-2 focus:outline-none focus:border-primary transition-colors"
+              placeholder="Search title or company..."
+              className="ev-input"
+              style={{ paddingLeft:30, width:'100%', boxSizing:'border-box', fontSize:'0.82rem' }}
             />
           </div>
 
           <button
             onClick={() => loadJobs(location)}
             disabled={loading}
-            className="flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm font-semibold rounded-lg hover:bg-primary-dark transition-colors disabled:opacity-50"
+            className="btn-primary"
+            style={{ padding:'8px 18px', fontSize:'0.82rem', display:'flex', alignItems:'center', gap:6, opacity: loading ? 0.6 : 1 }}
           >
-            {loading
-              ? <><Loader2 size={14} className="animate-spin" /> Searching...</>
-              : <><Search size={14} /> {loaded ? 'Refresh' : 'Find Jobs'}</>
-            }
+            <Search size={13} />
+            {loading ? 'Searching...' : loaded ? 'Refresh' : 'Find Jobs'}
           </button>
         </div>
       </div>
 
-      {/* Not loaded yet */}
+      {/* Empty state */}
       {!loaded && !loading && (
-        <div className="card p-12 text-center">
-          <Briefcase size={36} className="text-gray-200 mx-auto mb-3" />
-          <p className="text-gray-400 text-sm mb-1">Click "Find Jobs" to search real-time listings</p>
-          <p className="text-gray-300 text-xs">Jobs matched to your skills from LinkedIn, Indeed & Glassdoor</p>
+        <div className="ev-card" style={{ padding:48, textAlign:'center' }}>
+          <Briefcase size={32} color="#E8EAF0" style={{ margin:'0 auto 12px' }} />
+          <p style={{ color:'#9CA3AF', fontSize:'0.875rem', marginBottom:4 }}>Click "Find Jobs" to search real-time listings</p>
+          <p style={{ color:'#D1D5DB', fontSize:'0.75rem' }}>Jobs matched to your skills from LinkedIn, Indeed & Glassdoor</p>
         </div>
       )}
 
-      {/* Loading */}
+      {/* Loading skeleton */}
       {loading && (
-        <div className="card p-12 text-center">
-          <Loader2 size={28} className="animate-spin text-primary mx-auto mb-3" />
-          <p className="text-gray-500 text-sm font-medium">Searching real-time jobs matching your skills...</p>
-          <p className="text-gray-300 text-xs mt-1">Checking LinkedIn · Indeed · Glassdoor</p>
+        <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+          {[1,2,3].map(i => (
+            <div key={i} className="ev-card" style={{ padding:18 }}>
+              <div style={{ display:'flex', gap:14 }}>
+                <div className="skeleton-box" style={{ width:40, height:40, borderRadius:10, flexShrink:0 }} />
+                <div style={{ flex:1 }}>
+                  <div className="skeleton-box" style={{ width:'60%', height:14, borderRadius:6, marginBottom:8 }} />
+                  <div className="skeleton-box" style={{ width:'40%', height:11, borderRadius:6 }} />
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
       {/* Error */}
       {error && !loading && (
-        <div className="card p-6 text-center border-red-100">
-          <p className="text-red-500 text-sm mb-2">{error}</p>
-          <button onClick={() => loadJobs()} className="text-xs text-primary underline">Try again</button>
+        <div className="ev-card" style={{ padding:20, textAlign:'center', borderColor:'#FECACA' }}>
+          <p style={{ color:'#EF4444', fontSize:'0.875rem', marginBottom:8 }}>{error}</p>
+          <button onClick={() => loadJobs()} style={{ fontSize:'0.75rem', color:'#5147E5', background:'none', border:'none', cursor:'pointer', textDecoration:'underline' }}>Try again</button>
         </div>
       )}
 
       {/* Results */}
       {loaded && !loading && (
         <>
-          {/* Tabs */}
-          <div className="flex gap-1 overflow-x-auto pb-1">
+          {/* Tab bar */}
+          <div className="ev-tabs" style={{ paddingBottom:0, borderBottom:'1px solid #E8EAF0' }}>
             {TABS.map(tab => (
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
-                  activeTab === tab.key
-                    ? 'bg-primary text-white shadow-sm'
-                    : 'text-gray-500 hover:bg-gray-100 bg-white border border-gray-200'
-                }`}
+                className={`ev-tab${activeTab === tab.key ? ' active' : ''}`}
+                style={{ display:'flex', alignItems:'center', gap:6 }}
               >
                 {tab.label}
-                <span className={`text-xs px-1.5 py-0.5 rounded-full ${
-                  activeTab === tab.key ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-400'
-                }`}>
+                <span style={{
+                  fontSize:'0.62rem', fontWeight:700, padding:'1px 6px', borderRadius:99,
+                  background: activeTab === tab.key ? 'rgba(255,255,255,0.25)' : '#F0F1F5',
+                  color: activeTab === tab.key ? '#fff' : '#9CA3AF',
+                }}>
                   {tabCounts[tab.key]}
                 </span>
               </button>
             ))}
           </div>
 
-          {/* Job Cards */}
           {filtered.length === 0 ? (
-            <div className="card p-10 text-center">
-              <Briefcase size={32} className="text-gray-200 mx-auto mb-3" />
-              <p className="text-gray-400 text-sm">No jobs found for this filter.</p>
+            <div className="ev-card" style={{ padding:40, textAlign:'center' }}>
+              <Briefcase size={28} color="#E8EAF0" style={{ margin:'0 auto 10px' }} />
+              <p style={{ color:'#9CA3AF', fontSize:'0.875rem' }}>No jobs found for this filter.</p>
             </div>
           ) : (
-            <div className="space-y-3">
-              {filtered.map((job, i) => (
-                <JobCard key={`${job.id}-${i}`} job={job} index={i} />
-              ))}
+            <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+              {filtered.map((job, i) => <JobCard key={`${job.id}-${i}`} job={job} />)}
             </div>
           )}
 
-          <p className="text-center text-xs text-gray-300 pt-2">
+          <p style={{ textAlign:'center', fontSize:'0.68rem', color:'#D1D5DB', paddingTop:8 }}>
             Real-time jobs from LinkedIn · Indeed · Glassdoor via JSearch
           </p>
         </>

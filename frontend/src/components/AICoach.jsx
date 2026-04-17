@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Sparkles, FileText, Map, Loader2, Copy, Check } from 'lucide-react'
+import { Sparkles, FileText, Map, Loader2, Copy, Check, Zap } from 'lucide-react'
 import { getAICoaching } from '../services/api'
 
 function CopyButton({ text }) {
@@ -10,30 +10,35 @@ function CopyButton({ text }) {
     setTimeout(() => setCopied(false), 2000)
   }
   return (
-    <button onClick={copy} className="flex items-center gap-1 text-xs text-gray-400 hover:text-primary transition-colors">
-      {copied ? <><Check size={13} /> Copied</> : <><Copy size={13} /> Copy</>}
+    <button
+      onClick={copy}
+      style={{ display:'flex', alignItems:'center', gap:4, fontSize:'0.72rem', color:'#9CA3AF', background:'none', border:'none', cursor:'pointer', padding:'4px 8px', borderRadius:6, transition:'all 0.15s' }}
+      onMouseEnter={e => { e.currentTarget.style.background='#EEF0FE'; e.currentTarget.style.color='#5147E5' }}
+      onMouseLeave={e => { e.currentTarget.style.background='none'; e.currentTarget.style.color='#9CA3AF' }}
+    >
+      {copied ? <><Check size={12} /> Copied</> : <><Copy size={12} /> Copy</>}
     </button>
   )
 }
 
 function AICard({ icon: Icon, title, content, loading }) {
   return (
-    <div className="card p-5">
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-primary-light rounded-lg flex items-center justify-center">
-            <Icon size={16} className="text-primary" />
+    <div className="ev-card" style={{ padding:18 }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+          <div style={{ width:30, height:30, background:'#EEF0FE', borderRadius:8, display:'flex', alignItems:'center', justifyContent:'center' }}>
+            <Icon size={14} color="#5147E5" />
           </div>
-          <h4 className="font-semibold text-gray-800 text-sm">{title}</h4>
+          <h4 style={{ fontWeight:600, fontSize:'0.875rem', color:'#1A1D2E', margin:0 }}>{title}</h4>
         </div>
         {content && !loading && <CopyButton text={content} />}
       </div>
       {loading ? (
-        <div className="flex items-center gap-2 text-sm text-gray-400 py-4">
-          <Loader2 size={16} className="animate-spin text-primary" /> Generating...
+        <div style={{ display:'flex', alignItems:'center', gap:8, fontSize:'0.82rem', color:'#9CA3AF', padding:'10px 0' }}>
+          <Loader2 size={15} color="#5147E5" style={{ animation:'spin 1s linear infinite' }} /> Generating...
         </div>
       ) : content ? (
-        <pre className="text-sm text-gray-600 whitespace-pre-wrap font-body leading-relaxed">{content}</pre>
+        <pre style={{ fontSize:'0.82rem', color:'#374151', whiteSpace:'pre-wrap', fontFamily:"'Inter', sans-serif", lineHeight:1.65, margin:0 }}>{content}</pre>
       ) : null}
     </div>
   )
@@ -64,49 +69,59 @@ export default function AICoach({ analysisData }) {
   }
 
   return (
-    <div className="card p-6">
-      <div className="flex items-center justify-between mb-5">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-primary-light rounded-xl flex items-center justify-center">
-            <Sparkles className="text-primary w-5 h-5" />
+    <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+      {/* Header */}
+      <div className="ev-card" style={{ padding:20 }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+            <div style={{ width:40, height:40, background:'linear-gradient(135deg,#5147E5,#8B7CF6)', borderRadius:12, display:'flex', alignItems:'center', justifyContent:'center' }}>
+              <Sparkles size={18} color="#fff" />
+            </div>
+            <div>
+              <h3 style={{ fontWeight:700, fontSize:'0.95rem', color:'#1A1D2E', margin:'0 0 2px' }}>AI Career Coach</h3>
+              <p style={{ fontSize:'0.72rem', color:'#9CA3AF', margin:0 }}>Powered by Llama 3.3-70b via Groq</p>
+            </div>
           </div>
-          <div>
-            <h3 className="font-bold text-gray-800">AI Career Coach</h3>
-            <p className="text-xs text-gray-500">Powered by Llama 3.1 via Groq</p>
-          </div>
+          {!result && (
+            <button
+              onClick={run}
+              disabled={loading}
+              className="btn-primary"
+              style={{ display:'flex', alignItems:'center', gap:7, padding:'9px 18px', fontSize:'0.82rem', opacity: loading ? 0.7 : 1 }}
+            >
+              {loading ? <Loader2 size={14} style={{ animation:'spin 1s linear infinite' }} /> : <Zap size={14} />}
+              {loading ? 'Generating...' : 'Get AI Insights'}
+            </button>
+          )}
         </div>
-        {!result && (
-          <button
-            onClick={run}
-            disabled={loading}
-            className="flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm font-semibold rounded-lg hover:bg-primary-dark transition-colors disabled:opacity-50"
-          >
-            {loading ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />}
-            {loading ? 'Generating...' : 'Get AI Insights'}
-          </button>
+
+        {error && (
+          <p style={{ fontSize:'0.82rem', color:'#EF4444', marginTop:14, padding:'10px 14px', background:'#FEF2F2', borderRadius:8, border:'1px solid #FECACA' }}>{error}</p>
+        )}
+
+        {!loading && !result && !error && (
+          <p style={{ fontSize:'0.82rem', color:'#9CA3AF', marginTop:14, padding:'10px 14px', background:'#F8F9FC', borderRadius:8, textAlign:'center' }}>
+            Click "Get AI Insights" to generate bullet rewrites and a 30-day skill roadmap.
+          </p>
         )}
       </div>
 
-      {error && <p className="text-sm text-red-500 mb-4">{error}</p>}
-
+      {/* Content Cards */}
       {(loading || result) && (
-        <div className="space-y-4">
+        <>
           <AICard
-            icon={FileText} title="Improved Bullet Points"
-            content={result?.rewritten_bullets} loading={loading}
+            icon={FileText}
+            title="Improved Bullet Points"
+            content={result?.rewritten_bullets}
+            loading={loading}
           />
-          
           <AICard
-            icon={Map} title="30-Day Skill Roadmap"
-            content={result?.skill_roadmap} loading={loading}
+            icon={Map}
+            title="30-Day Skill Roadmap"
+            content={result?.skill_roadmap}
+            loading={loading}
           />
-        </div>
-      )}
-
-      {!loading && !result && !error && (
-        <p className="text-sm text-gray-400 text-center py-4">
-          Click "Get AI Insights" to generate bullet rewrites, cover letter, and skill roadmap.
-        </p>
+        </>
       )}
     </div>
   )

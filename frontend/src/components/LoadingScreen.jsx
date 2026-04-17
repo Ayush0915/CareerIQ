@@ -1,100 +1,123 @@
 import React, { useEffect, useState } from 'react'
-import { BrainCircuit, CheckCircle2, Sparkles } from 'lucide-react'
+import { SemiCircleGauge } from './ScoreRing'
 
 const STEPS = [
-  { label: 'Parsing resume',            detail: 'Extracting text and structure...' },
-  { label: 'Extracting skills',         detail: 'Matching against 2,000+ skill database...' },
-  { label: 'Running semantic analysis', detail: 'BERT embeddings comparing JD alignment...' },
-  { label: 'Classifying skill gaps',    detail: 'Ranking critical vs optional gaps...' },
-  { label: 'Generating AI insights',    detail: 'Llama 3.1 scoring each resume section...' },
+  { label: 'Parsing your resume',         detail: 'Extracting text & structure'      },
+  { label: 'Analyzing your experience',   detail: 'Detecting years & seniority level' },
+  { label: 'Extracting your skills',      detail: 'Matching against 2,000+ skills'    },
+  { label: 'Running semantic analysis',   detail: 'BERT embeddings vs job description' },
+  { label: 'Generating AI insights',      detail: 'Llama 3.3-70b deep evaluation'     },
 ]
+
+const CATEGORIES = ['Content', 'Sections', 'ATS Essentials', 'Skill Gaps']
+
+function HexCheck({ status }) {
+  // status: 'done' | 'active' | 'pending'
+  if (status === 'done') return (
+    <svg width="28" height="28" viewBox="0 0 28 28">
+      <polygon points="14,2 25,8 25,20 14,26 3,20 3,8" fill="#5147E5" stroke="none" />
+      <polyline points="9,14 12.5,18 19,11" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+  if (status === 'active') return (
+    <svg width="28" height="28" viewBox="0 0 28 28" style={{ animation:'spinRing 1.2s linear infinite', transformOrigin:'14px 14px' }}>
+      <polygon points="14,2 25,8 25,20 14,26 3,20 3,8" fill="none" stroke="#5147E5" strokeWidth="2" />
+      <circle cx="14" cy="14" r="4" fill="#5147E5" />
+    </svg>
+  )
+  return (
+    <svg width="28" height="28" viewBox="0 0 28 28">
+      <polygon points="14,2 25,8 25,20 14,26 3,20 3,8" fill="none" stroke="#E8EAF0" strokeWidth="2" />
+    </svg>
+  )
+}
 
 export default function LoadingScreen({ progress }) {
   const [visible, setVisible] = useState(false)
-  const stepIndex = Math.min(Math.floor((progress / 100) * STEPS.length), STEPS.length - 1)
+  useEffect(() => { const t = setTimeout(() => setVisible(true), 40); return () => clearTimeout(t) }, [])
 
-  useEffect(() => {
-    const t = setTimeout(() => setVisible(true), 50)
-    return () => clearTimeout(t)
-  }, [])
+  const stepIndex = Math.min(Math.floor((progress / 100) * STEPS.length), STEPS.length - 1)
+  const catProgress = Math.floor((progress / 100) * (CATEGORIES.length + 1))
 
   return (
-    <div className={`min-h-screen bg-white flex items-center justify-center px-6 transition-opacity duration-500 relative overflow-hidden ${visible ? 'opacity-100' : 'opacity-0'}`}>
-      {/* Background blobs */}
-      <div className="pointer-events-none absolute inset-0">
-        <div style={{ position:'absolute', top:'-100px', right:'-150px', width:'500px', height:'500px',
-          background:'radial-gradient(circle, rgba(99,102,241,0.07) 0%, transparent 65%)', borderRadius:'50%' }} />
-        <div style={{ position:'absolute', bottom:'-80px', left:'-80px', width:'400px', height:'400px',
-          background:'radial-gradient(circle, rgba(139,92,246,0.06) 0%, transparent 65%)', borderRadius:'50%' }} />
-      </div>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      style={{ background:'#F5F6FA', opacity: visible ? 1 : 0, transition:'opacity 0.4s ease' }}
+    >
+      <div className="w-full max-w-3xl mx-auto px-4 flex gap-4" style={{ height: 480 }}>
 
-      <div className="relative z-10 text-center max-w-sm w-full">
-        {/* Icon with pulsing rings */}
-        <div className="relative flex items-center justify-center mb-8">
-          <div className="absolute w-24 h-24 rounded-full border border-primary/20 animate-ping-slow" />
-          <div className="absolute w-20 h-20 rounded-full border border-primary/10" />
-          <div className="w-16 h-16 gradient-primary rounded-3xl flex items-center justify-center shadow-xl shadow-indigo-200 relative">
-            <BrainCircuit size={28} className="text-white" />
-          </div>
-        </div>
+        {/* ── LEFT: Score card + categories ─────────────────── */}
+        <div className="ev-card flex flex-col items-center p-6 scan-container" style={{ width: 260, flexShrink: 0 }}>
+          <div className="scan-line" />
 
-        <h2 className="font-display font-extrabold text-2xl text-ink mb-2">
-          Analyzing Your Resume
-        </h2>
-        <p className="text-muted text-sm mb-8 h-5 transition-all duration-300">
-          {STEPS[stepIndex].detail}
-        </p>
+          <p style={{ fontSize:'0.7rem', fontWeight:'700', color:'#9CA3AF', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom: 8 }}>
+            Your Score
+          </p>
 
-        {/* Progress bar */}
-        <div className="mb-6">
-          <div className="flex justify-between text-xs text-muted mb-2">
-            <span className="font-medium text-ink">{STEPS[stepIndex].label}</span>
-            <span className="font-mono font-semibold text-primary">{progress}%</span>
-          </div>
-          <div className="h-2 bg-bg-subtle rounded-full overflow-hidden border border-slate-100">
-            <div
-              className="h-full rounded-full transition-all duration-700 ease-out"
-              style={{ width: `${progress}%`, background: 'linear-gradient(90deg,#6366f1,#8b5cf6,#06b6d4)', backgroundSize:'200% 100%' }}
-            />
-          </div>
-        </div>
+          <SemiCircleGauge score={progress} size={200} animate />
 
-        {/* Steps list */}
-        <div className="space-y-2">
-          {STEPS.map((step, i) => {
-            const done    = i < stepIndex
-            const current = i === stepIndex
-            return (
-              <div
-                key={i}
-                className={`flex items-center gap-3 px-4 py-2.5 rounded-2xl transition-all duration-300 ${
-                  current
-                    ? 'bg-primary-light border border-primary-mid'
-                    : done
-                    ? 'opacity-60'
-                    : 'opacity-25'
-                }`}
-              >
-                {done ? (
-                  <CheckCircle2 size={15} className="text-emerald-500 shrink-0" />
-                ) : current ? (
-                  <div className="w-3.5 h-3.5 rounded-full border-2 border-primary border-t-transparent animate-spin shrink-0" />
+          <div style={{ marginTop: 16, width:'100%' }}>
+            {CATEGORIES.map((cat, i) => (
+              <div key={i} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'8px 0', borderBottom: i < CATEGORIES.length - 1 ? '1px solid #F0F1F5' : 'none' }}>
+                <span style={{ fontSize:'0.68rem', fontWeight:'700', color:'#9CA3AF', textTransform:'uppercase', letterSpacing:'0.07em' }}>{cat}</span>
+                {i < catProgress ? (
+                  <span className="ev-badge ev-badge-accent" style={{ fontSize:'0.65rem' }}>
+                    {[88, 100, 74, 60][i]}%
+                  </span>
                 ) : (
-                  <div className="w-3.5 h-3.5 rounded-full border border-slate-300 shrink-0" />
+                  <div className="skeleton-box" style={{ width: 44, height: 20, borderRadius: 99 }} />
                 )}
-                <span className={`text-xs font-medium ${current ? 'text-primary' : done ? 'text-ink' : 'text-muted'}`}>
-                  {step.label}
-                </span>
-                {current && <span className="ml-auto text-xs text-primary font-mono font-semibold">{progress}%</span>}
               </div>
-            )
-          })}
+            ))}
+          </div>
         </div>
 
-        <p className="text-xs text-muted mt-6 flex items-center justify-center gap-1.5">
-          <Sparkles size={10} className="text-primary" />
-          Powered by BERT + Llama 3.1 + Groq
-        </p>
+        {/* ── RIGHT: Step checklist ─────────────────────────── */}
+        <div className="ev-card flex-1 p-8"
+          style={{ background:'linear-gradient(145deg, #EEF0FE 0%, #F5F3FF 100%)', border:'1px solid #D8DCFC' }}>
+          <p style={{ fontSize:'0.8rem', fontWeight:'600', color:'#5147E5', marginBottom: 28, letterSpacing:'0.01em' }}>
+            Analyzing your resume...
+          </p>
+
+          <div style={{ display:'flex', flexDirection:'column', gap: 0 }}>
+            {STEPS.map((step, i) => {
+              const status = i < stepIndex ? 'done' : i === stepIndex ? 'active' : 'pending'
+              const isLast = i === STEPS.length - 1
+              return (
+                <div key={i}>
+                  <div style={{ display:'flex', alignItems:'center', gap: 14 }}>
+                    <HexCheck status={status} />
+                    <div>
+                      <p style={{
+                        fontSize:'0.875rem', fontWeight: status === 'active' ? '700' : '500',
+                        color: status === 'pending' ? '#9CA3AF' : status === 'active' ? '#1A1D2E' : '#374151',
+                        transition:'color 0.3s'
+                      }}>{step.label}</p>
+                      {status === 'active' && (
+                        <p style={{ fontSize:'0.72rem', color:'#5147E5', marginTop:2 }}>{step.detail}</p>
+                      )}
+                    </div>
+                  </div>
+                  {!isLast && (
+                    <div style={{ width:1, height:28, background: i < stepIndex ? '#5147E5' : '#E8EAF0', marginLeft:13, marginTop:2, marginBottom:2, transition:'background 0.4s' }} />
+                  )}
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Progress bar */}
+          <div style={{ marginTop: 28 }}>
+            <div style={{ display:'flex', justifyContent:'space-between', marginBottom:6 }}>
+              <span style={{ fontSize:'0.72rem', color:'#6B7280' }}>Progress</span>
+              <span style={{ fontSize:'0.72rem', fontWeight:'700', color:'#5147E5', fontVariantNumeric:'tabular-nums' }}>{progress}%</span>
+            </div>
+            <div className="ev-progress-track">
+              <div className="ev-progress-fill"
+                style={{ width:`${progress}%`, background:'linear-gradient(90deg,#5147E5,#8B7CF6)' }} />
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   )

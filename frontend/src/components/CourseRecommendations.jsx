@@ -1,185 +1,177 @@
 import React, { useState, useMemo } from 'react'
-import { BookOpen, Clock, Users, Star, ExternalLink, Filter, Zap, TrendingUp, GraduationCap } from 'lucide-react'
+import { BookOpen, Clock, Star, Users, ExternalLink, Zap, Filter, TrendingUp, GraduationCap, Map } from 'lucide-react'
 
-// ── Course database ──────────────────────────────────────────────────────────
-// Maps skill keywords → curated courses from real platforms
-const COURSE_DB = {
-  // DevOps / Cloud
-  'docker': [
-    { id:'d1', title:'Docker for Beginners: Full Course', platform:'freeCodeCamp', platformColor:'#0a0a23', thumbBg:'linear-gradient(135deg,#1d4ed8,#0369a1)', emoji:'🐳', duration:'6h', level:'Beginner', free:true, rating:4.8, students:'280k', url:'https://www.youtube.com/watch?v=fqMOX6JJhGo', desc:'Build, run, and ship Docker containers. Covers Dockerfile, volumes, networking, and Compose.' },
-    { id:'d2', title:'Docker & Kubernetes: The Practical Guide', platform:'Udemy', platformColor:'#a435f0', thumbBg:'linear-gradient(135deg,#0369a1,#0891b2)', emoji:'🐳', duration:'22h', level:'Intermediate', free:false, price:'$14.99', rating:4.7, students:'185k', url:'https://www.udemy.com/course/docker-kubernetes-the-practical-guide/', desc:'Hands-on containerization from zero to K8s. Build and deploy real-world applications.' },
-  ],
-  'kubernetes': [
-    { id:'k1', title:'Kubernetes Crash Course for Absolute Beginners', platform:'TechWorld w/ Nana', platformColor:'#4f46e5', thumbBg:'linear-gradient(135deg,#0f766e,#0891b2)', emoji:'☸️', duration:'4h', level:'Beginner', free:true, rating:4.9, students:'900k', url:'https://www.youtube.com/watch?v=s_o8dwzRlu4', desc:'Core K8s concepts: Pods, Deployments, Services, ConfigMaps. Run on Minikube.' },
-    { id:'k2', title:'Certified Kubernetes Administrator (CKA) Prep', platform:'Udemy', platformColor:'#a435f0', thumbBg:'linear-gradient(135deg,#0891b2,#0f766e)', emoji:'☸️', duration:'18h', level:'Advanced', free:false, price:'$14.99', rating:4.8, students:'120k', url:'https://www.udemy.com/course/certified-kubernetes-administrator-with-practice-tests/', desc:'CKA-focused deep-dive. Real labs, practice tests, and cluster troubleshooting.' },
-  ],
-  'aws': [
-    { id:'a1', title:'AWS Cloud Practitioner Essentials', platform:'AWS Training', platformColor:'#f59e0b', thumbBg:'linear-gradient(135deg,#d97706,#b45309)', emoji:'☁️', duration:'6h', level:'Beginner', free:true, rating:4.7, students:'2M+', url:'https://aws.amazon.com/training/learn-about/cloud-practitioner/', desc:'Official AWS course. Core services, cloud concepts, billing, and architecture.' },
-    { id:'a2', title:'Ultimate AWS Certified Developer Associate', platform:'Udemy', platformColor:'#a435f0', thumbBg:'linear-gradient(135deg,#b45309,#d97706)', emoji:'☁️', duration:'30h', level:'Intermediate', free:false, price:'$14.99', rating:4.8, students:'200k', url:'https://www.udemy.com/course/aws-certified-developer-associate-dva-c01/', desc:'Pass the AWS DVA-C02 exam. EC2, Lambda, DynamoDB, API Gateway, S3, IAM.' },
-  ],
-  'ci/cd': [
-    { id:'ci1', title:'GitHub Actions Full Course', platform:'freeCodeCamp', platformColor:'#0a0a23', thumbBg:'linear-gradient(135deg,#374151,#111827)', emoji:'⚙️', duration:'3h', level:'Beginner', free:true, rating:4.7, students:'120k', url:'https://www.youtube.com/watch?v=R8_veQiYBjI', desc:'Automate your workflows. Build CI/CD pipelines with GitHub Actions from scratch.' },
-  ],
-  // Frontend
-  'typescript': [
-    { id:'ts1', title:'TypeScript Full Course for Beginners', platform:'freeCodeCamp', platformColor:'#0a0a23', thumbBg:'linear-gradient(135deg,#1d4ed8,#4338ca)', emoji:'📘', duration:'8h', level:'Beginner', free:true, rating:4.9, students:'500k', url:'https://www.youtube.com/watch?v=30LWjhZzg50', desc:'Complete TypeScript from types and interfaces to generics and decorators.' },
-    { id:'ts2', title:'Understanding TypeScript', platform:'Udemy', platformColor:'#a435f0', thumbBg:'linear-gradient(135deg,#4338ca,#3730a3)', emoji:'📘', duration:'15h', level:'Intermediate', free:false, price:'$12.99', rating:4.7, students:'160k', url:'https://www.udemy.com/course/understanding-typescript/', desc:'Deep TypeScript with React, Node, and Express. Generics, decorators, types.' },
-  ],
-  'react': [
-    { id:'r1', title:'React Full Course 2024 — freeCodeCamp', platform:'freeCodeCamp', platformColor:'#0a0a23', thumbBg:'linear-gradient(135deg,#0891b2,#06b6d4)', emoji:'⚛️', duration:'10h', level:'Beginner', free:true, rating:4.8, students:'800k', url:'https://www.youtube.com/watch?v=bMknfKXIFA8', desc:'Build full React apps with hooks, context, React Router, and Redux.' },
-  ],
-  'graphql': [
-    { id:'gq1', title:'GraphQL Full Course — Novice to Expert', platform:'freeCodeCamp', platformColor:'#0a0a23', thumbBg:'linear-gradient(135deg,#7c3aed,#db2777)', emoji:'⚡', duration:'4h', level:'Intermediate', free:true, rating:4.7, students:'200k', url:'https://www.youtube.com/watch?v=ed8SzALpx1Q', desc:'GraphQL schemas, resolvers, Apollo Server + Client. Replace REST with typed queries.' },
-  ],
-  'vue': [
-    { id:'v1', title:'Vue.js 3 Tutorial Full Course', platform:'The Net Ninja', platformColor:'#059669', thumbBg:'linear-gradient(135deg,#059669,#10b981)', emoji:'💚', duration:'6h', level:'Beginner', free:true, rating:4.7, students:'300k', url:'https://www.youtube.com/watch?v=YrxBCBibVo0', desc:'Vue 3 composition API, Vuex, Vue Router. Build real apps from scratch.' },
-  ],
-  // Backend / Databases
-  'redis': [
-    { id:'red1', title:'Redis Crash Course', platform:'Traversy Media', platformColor:'#dc2626', thumbBg:'linear-gradient(135deg,#dc2626,#b91c1c)', emoji:'🔴', duration:'2h', level:'Beginner', free:true, rating:4.8, students:'150k', url:'https://www.youtube.com/watch?v=jgpVdJB2sKQ', desc:'Caching, pub/sub, sorted sets, Redis commands. With Node.js integration.' },
-  ],
-  'postgresql': [
-    { id:'pg1', title:'PostgreSQL Full Tutorial', platform:'freeCodeCamp', platformColor:'#0a0a23', thumbBg:'linear-gradient(135deg,#1d4ed8,#2563eb)', emoji:'🐘', duration:'4h', level:'Beginner', free:true, rating:4.8, students:'300k', url:'https://www.youtube.com/watch?v=qw--VYLpxG4', desc:'SQL from basics to advanced: joins, indexes, CTEs, window functions, transactions.' },
-  ],
-  'mongodb': [
-    { id:'mg1', title:'MongoDB Crash Course', platform:'Traversy Media', platformColor:'#059669', thumbBg:'linear-gradient(135deg,#059669,#15803d)', emoji:'🍃', duration:'2h', level:'Beginner', free:true, rating:4.7, students:'400k', url:'https://www.youtube.com/watch?v=-56x56UppqQ', desc:'NoSQL concepts, CRUD, aggregation pipeline, indexes with Node.js.' },
-  ],
-  // AI / ML
-  'machine learning': [
-    { id:'ml1', title:'Machine Learning Specialization', platform:'Coursera — Andrew Ng', platformColor:'#0056d2', thumbBg:'linear-gradient(135deg,#0056d2,#0284c7)', emoji:'🤖', duration:'90h', level:'Intermediate', free:false, price:'Audit free', rating:4.9, students:'4M+', url:'https://www.coursera.org/specializations/machine-learning-introduction', desc:'Supervised & unsupervised learning, neural nets, recommenders. The gold standard ML course.' },
-  ],
-  'deep learning': [
-    { id:'dl1', title:'Deep Learning Specialization', platform:'Coursera — Andrew Ng', platformColor:'#0056d2', thumbBg:'linear-gradient(135deg,#7c3aed,#4f46e5)', emoji:'🧠', duration:'80h', level:'Advanced', free:false, price:'Audit free', rating:4.9, students:'1M+', url:'https://www.coursera.org/specializations/deep-learning', desc:'CNNs, RNNs, Transformers, backprop. Implement in TensorFlow and PyTorch.' },
-  ],
-  'pytorch': [
-    { id:'pt1', title:'PyTorch for Deep Learning Full Course', platform:'freeCodeCamp', platformColor:'#0a0a23', thumbBg:'linear-gradient(135deg,#dc2626,#f97316)', emoji:'🔥', duration:'25h', level:'Intermediate', free:true, rating:4.8, students:'500k', url:'https://www.youtube.com/watch?v=V_xro1bcAuA', desc:'Tensors, autograd, building neural nets, training loops, CNNs, NLP.' },
-  ],
-  'tensorflow': [
-    { id:'tf1', title:'TensorFlow Developer Certificate Prep', platform:'Coursera', platformColor:'#0056d2', thumbBg:'linear-gradient(135deg,#f97316,#dc2626)', emoji:'🧮', duration:'40h', level:'Intermediate', free:false, price:'Audit free', rating:4.7, students:'300k', url:'https://www.coursera.org/professional-certificates/tensorflow-in-practice', desc:'Official TF prep. CNNs, NLP, time series with Keras. Leads to Google TF Dev cert.' },
-  ],
-  // Data
-  'sql': [
-    { id:'sq1', title:'SQL Tutorial — Full Course for Beginners', platform:'freeCodeCamp', platformColor:'#0a0a23', thumbBg:'linear-gradient(135deg,#0369a1,#0284c7)', emoji:'🗄️', duration:'4h', level:'Beginner', free:true, rating:4.9, students:'700k', url:'https://www.youtube.com/watch?v=HXV3zeQKqGY', desc:'SQL syntax, joins, subqueries, aggregate functions, and database design.' },
-  ],
-  'pandas': [
-    { id:'pd1', title:'Pandas & Python for Data Analysis', platform:'freeCodeCamp', platformColor:'#0a0a23', thumbBg:'linear-gradient(135deg,#0f766e,#115e59)', emoji:'🐼', duration:'12h', level:'Beginner', free:true, rating:4.8, students:'600k', url:'https://www.youtube.com/watch?v=r-uOLxNrNk8', desc:'DataFrames, groupby, merge, pivot, cleaning, and visualization with Matplotlib.' },
-  ],
-  'python': [
-    { id:'py1', title:'Python Full Course for Beginners', platform:'freeCodeCamp', platformColor:'#0a0a23', thumbBg:'linear-gradient(135deg,#1d4ed8,#1e40af)', emoji:'🐍', duration:'12h', level:'Beginner', free:true, rating:4.9, students:'2M+', url:'https://www.youtube.com/watch?v=rfscVS0vtbw', desc:'Complete Python 3 from scratch. Data structures, OOP, files, exceptions, projects.' },
-  ],
-  'java': [
-    { id:'jv1', title:'Java Full Course', platform:'Amigoscode', platformColor:'#dc2626', thumbBg:'linear-gradient(135deg,#dc2626,#9f1239)', emoji:'☕', duration:'12h', level:'Beginner', free:true, rating:4.7, students:'300k', url:'https://www.youtube.com/watch?v=Qgl81fPcLc8', desc:'Java fundamentals to OOP. Classes, interfaces, generics, collections, streams.' },
-  ],
-  'spring': [
-    { id:'sp1', title:'Spring Boot 3 Full Course', platform:'Amigoscode', platformColor:'#059669', thumbBg:'linear-gradient(135deg,#059669,#16a34a)', emoji:'🌱', duration:'4h', level:'Intermediate', free:true, rating:4.8, students:'400k', url:'https://www.youtube.com/watch?v=9SGDpanrc8U', desc:'REST APIs with Spring Boot 3, JPA, PostgreSQL, testing, Docker deployment.' },
-  ],
-  'system design': [
-    { id:'sd1', title:'System Design — AlgoExpert', platform:'ByteByteGo', platformColor:'#7c3aed', thumbBg:'linear-gradient(135deg,#7c3aed,#4f46e5)', emoji:'🏗️', duration:'20h', level:'Advanced', free:false, price:'Free newsletter', rating:4.9, students:'500k', url:'https://bytebytego.com/', desc:'Design scalable systems: load balancers, CDNs, databases, message queues, microservices.' },
-  ],
-  'linux': [
-    { id:'lx1', title:'Linux Command Line Full Course', platform:'freeCodeCamp', platformColor:'#0a0a23', thumbBg:'linear-gradient(135deg,#374151,#1f2937)', emoji:'🐧', duration:'5h', level:'Beginner', free:true, rating:4.8, students:'500k', url:'https://www.youtube.com/watch?v=iwolPf6kN-k', desc:'Shell commands, file system, permissions, scripting, process management.' },
-  ],
-  'git': [
-    { id:'gt1', title:'Git and GitHub Full Course', platform:'freeCodeCamp', platformColor:'#0a0a23', thumbBg:'linear-gradient(135deg,#dc2626,#f97316)', emoji:'📦', duration:'3h', level:'Beginner', free:true, rating:4.8, students:'600k', url:'https://www.youtube.com/watch?v=RGOj5yH7evk', desc:'Commits, branches, merging, rebasing, pull requests, GitHub workflows.' },
-  ],
+/* ─── Master course database ──────────────────────────────────────────────── */
+const COURSE_DB = [
+  /* Python */
+  { id:'py1', skill:'python', title:'Python for Everybody', platform:'Coursera', provider:'University of Michigan', level:'beginner', hours:30, rating:4.8, students:'2M+', free:true,  cert:true,  url:'https://www.coursera.org/specializations/python', emoji:'🐍', color:['#3b82f6','#1d4ed8'], desc:'Complete Python from zero — data, APIs, and automation. Earn a university certificate.' },
+  { id:'py2', skill:'python', title:'100 Days of Code: Python Bootcamp', platform:'Udemy', provider:'Dr. Angela Yu', level:'beginner', hours:60, rating:4.7, students:'1.2M+', free:false, price:'$14.99', cert:false, url:'https://www.udemy.com/course/100-days-of-code/', emoji:'🐍', color:['#3b82f6','#1d4ed8'], desc:'60 days of real Python projects. The most comprehensive Python course on Udemy.' },
+
+  /* JavaScript / TypeScript */
+  { id:'ts1', skill:'typescript', title:'TypeScript: The Complete Developer Guide', platform:'Udemy', provider:'Stephen Grider', level:'intermediate', hours:9, rating:4.9, students:'200k+', free:false, price:'$12.99', cert:false, url:'https://www.udemy.com/course/typescript-the-complete-developers-guide/', emoji:'📘', color:['#4338ca','#1d4ed8'], desc:'Types, generics, decorators, and full React + Node integration. Build real projects.' },
+  { id:'js1', skill:'javascript', title:'The Complete JavaScript Course 2024', platform:'Udemy', provider:'Jonas Schmedtmann', level:'beginner', hours:69, rating:4.7, students:'800k+', free:false, price:'$13.99', cert:false, url:'https://www.udemy.com/course/the-complete-javascript-course/', emoji:'🟨', color:['#ca8a04','#a16207'], desc:'Modern JavaScript from scratch through advanced async, OOP, and DOM manipulation.' },
+  { id:'js2', skill:'javascript', title:'JavaScript Algorithms & Data Structures', platform:'freeCodeCamp', provider:'freeCodeCamp', level:'beginner', hours:20, rating:4.8, students:'500k+', free:true, cert:true, url:'https://www.freecodecamp.org/learn/javascript-algorithms-and-data-structures/', emoji:'🟨', color:['#ca8a04','#a16207'], desc:'Free full curriculum with certification. Covers ES6, regex, debugging, and algorithms.' },
+
+  /* React */
+  { id:'rct1', skill:'react', title:'React — The Complete Guide (incl. React Router & Redux)', platform:'Udemy', provider:'Maximilian Schwarzmuller', level:'beginner', hours:68, rating:4.6, students:'700k+', free:false, price:'$14.99', cert:false, url:'https://www.udemy.com/course/react-the-complete-guide-incl-redux/', emoji:'⚛️', color:['#0891b2','#0e7490'], desc:'Hooks, Context, Redux, Router, and Next.js. The most complete React course available.' },
+  { id:'rct2', skill:'react', title:'Frontend Development Libraries', platform:'freeCodeCamp', provider:'freeCodeCamp', level:'intermediate', hours:10, rating:4.7, students:'300k+', free:true, cert:true, url:'https://www.freecodecamp.org/learn/front-end-development-libraries/', emoji:'⚛️', color:['#0891b2','#0e7490'], desc:'React, Redux, Sass, Bootstrap, and jQuery — free certification included.' },
+
+  /* Node.js */
+  { id:'node1', skill:'node.js', title:'The Complete Node.js Developer Course', platform:'Udemy', provider:'Andrew Mead', level:'beginner', hours:35, rating:4.7, students:'190k+', free:false, price:'$13.99', cert:false, url:'https://www.udemy.com/course/the-complete-nodejs-developer-course-2/', emoji:'🟩', color:['#16a34a','#15803d'], desc:'REST APIs, authentication, databases, sockets, and testing with Jest.' },
+
+  /* Docker */
+  { id:'dk1', skill:'docker', title:'Docker & Kubernetes: The Practical Guide', platform:'Udemy', provider:'Maximilian Schwarzmuller', level:'beginner', hours:23, rating:4.7, students:'140k+', free:false, price:'$14.99', cert:false, url:'https://www.udemy.com/course/docker-kubernetes-the-practical-guide/', emoji:'🐳', color:['#1d4ed8','#1e40af'], desc:'Containers, images, volumes, Compose, and full Kubernetes orchestration.' },
+  { id:'dk2', skill:'docker', title:'Docker Tutorial for Beginners', platform:'YouTube', provider:'TechWorld with Nana', level:'beginner', hours:4, rating:4.9, students:'2M+ views', free:true, cert:false, url:'https://www.youtube.com/watch?v=3c-iBn73dDE', emoji:'🐳', color:['#1d4ed8','#1e40af'], desc:'Hands-on Docker in 4 hours — containers, Dockerfile, Compose, and networking.' },
+
+  /* Kubernetes */
+  { id:'k8s1', skill:'kubernetes', title:'Certified Kubernetes Administrator (CKA)', platform:'Udemy', provider:'Mumshad Mannambeth', level:'advanced', hours:18, rating:4.8, students:'130k+', free:false, price:'$14.99', cert:false, url:'https://www.udemy.com/course/certified-kubernetes-administrator-with-practice-tests/', emoji:'☸️', color:['#0f766e','#0891b2'], desc:'CKA exam prep with hands-on labs. Pods, deployments, services, RBAC, and networking.' },
+
+  /* AWS */
+  { id:'aws1', skill:'aws', title:'AWS Certified Cloud Practitioner', platform:'freeCodeCamp', provider:'Andrew Brown', level:'beginner', hours:14, rating:4.7, students:'3M+ views', free:true, cert:false, url:'https://www.youtube.com/watch?v=SOTamWNgDKc', emoji:'☁️', color:['#f59e0b','#d97706'], desc:'Full AWS CCP prep on YouTube. IAM, S3, EC2, Lambda, RDS, and VPC.' },
+  { id:'aws2', skill:'aws', title:'Ultimate AWS Certified Solutions Architect', platform:'Udemy', provider:'Stephane Maarek', level:'intermediate', hours:27, rating:4.7, students:'500k+', free:false, price:'$14.99', cert:false, url:'https://www.udemy.com/course/aws-certified-solutions-architect-associate-saa-c03/', emoji:'☁️', color:['#f59e0b','#d97706'], desc:'Deep dive into AWS architecture, SAA-C03 exam prep with practice exams.' },
+
+  /* SQL */
+  { id:'sql1', skill:'sql', title:'The Complete SQL Bootcamp', platform:'Udemy', provider:'Jose Portilla', level:'beginner', hours:9, rating:4.7, students:'400k+', free:false, price:'$11.99', cert:false, url:'https://www.udemy.com/course/the-complete-sql-bootcamp/', emoji:'🗄️', color:['#0369a1','#0284c7'], desc:'PostgreSQL from basics to advanced — joins, subqueries, window functions, and more.' },
+  { id:'sql2', skill:'sql', title:'Relational Databases & SQL', platform:'freeCodeCamp', provider:'freeCodeCamp', level:'beginner', hours:8, rating:4.8, students:'200k+', free:true, cert:true, url:'https://www.freecodecamp.org/learn/relational-database/', emoji:'🗄️', color:['#0369a1','#0284c7'], desc:'Free certification course covering SQL, PostgreSQL, and database design.' },
+
+  /* Machine Learning */
+  { id:'ml1', skill:'machine learning', title:'Machine Learning Specialization', platform:'Coursera', provider:'Andrew Ng / Stanford', level:'intermediate', hours:90, rating:4.9, students:'1M+', free:true, cert:true, url:'https://www.coursera.org/specializations/machine-learning-introduction', emoji:'🤖', color:['#7c3aed','#6d28d9'], desc:'The definitive ML course by Andrew Ng. Regression, classification, neural nets, trees.' },
+  { id:'ml2', skill:'machine learning', title:'Hands-On ML with Scikit-Learn & TensorFlow', platform:'Book + Labs', provider:'Aurelien Geron', level:'intermediate', hours:40, rating:4.9, students:'500k+', free:false, price:'$35', cert:false, url:'https://www.oreilly.com/library/view/hands-on-machine-learning/9781492032632/', emoji:'🤖', color:['#7c3aed','#6d28d9'], desc:'The most practical ML book with full code labs. Production ML pipelines.' },
+
+  /* Deep Learning */
+  { id:'dl1', skill:'deep learning', title:'Deep Learning Specialization', platform:'Coursera', provider:'deeplearning.ai', level:'advanced', hours:80, rating:4.9, students:'600k+', free:true, cert:true, url:'https://www.coursera.org/specializations/deep-learning', emoji:'🧠', color:['#7c3aed','#a855f7'], desc:'CNNs, RNNs, optimization, and structuring ML projects. Andrew Ng certified.' },
+
+  /* FastAPI */
+  { id:'fapi1', skill:'fastapi', title:'FastAPI — A Python Framework Full Course', platform:'freeCodeCamp', provider:'Sanjeev Thiyagarajan', level:'intermediate', hours:19, rating:4.8, students:'500k+ views', free:true, cert:false, url:'https://www.youtube.com/watch?v=0sOvCWFmrtA', emoji:'⚡', color:['#059669','#047857'], desc:'Full FastAPI course — async, authentication, databases, and deployment.' },
+
+  /* GraphQL */
+  { id:'gql1', skill:'graphql', title:'GraphQL with React & Apollo', platform:'Udemy', provider:'Stephen Grider', level:'intermediate', hours:8, rating:4.6, students:'54k+', free:false, price:'$12.99', cert:false, url:'https://www.udemy.com/course/graphql-with-react-course/', emoji:'⚡', color:['#db2777','#be185d'], desc:'Build type-safe APIs with GraphQL, Apollo Client, and React integration.' },
+
+  /* Redis */
+  { id:'redis1', skill:'redis', title:'Redis Crash Course', platform:'YouTube', provider:'Traversy Media', level:'beginner', hours:1, rating:4.8, students:'500k+ views', free:true, cert:false, url:'https://www.youtube.com/watch?v=jgpVdJB2sKQ', emoji:'🔴', color:['#dc2626','#b91c1c'], desc:'Redis fundamentals — caching, pub/sub, data structures, and use cases.' },
+
+  /* CI/CD */
+  { id:'cicd1', skill:'ci/cd', title:'DevOps with GitHub Actions', platform:'YouTube', provider:'TechWorld with Nana', level:'intermediate', hours:3, rating:4.7, students:'600k+ views', free:true, cert:false, url:'https://www.youtube.com/watch?v=R8_veQiYBjI', emoji:'🔄', color:['#374151','#111827'], desc:'Automate build, test, and deploy workflows with GitHub Actions CI/CD.' },
+
+  /* Git */
+  { id:'git1', skill:'git', title:'Git & GitHub for Beginners', platform:'freeCodeCamp', provider:'Gwen Faraday', level:'beginner', hours:4, rating:4.7, students:'5M+ views', free:true, cert:false, url:'https://www.youtube.com/watch?v=RGOj5yH7evk', emoji:'🔀', color:['#f97316','#ea580c'], desc:'Complete Git workflow — branches, merging, rebasing, PRs, and GitHub collaboration.' },
+
+  /* TensorFlow */
+  { id:'tf1', skill:'tensorflow', title:'TensorFlow Developer Certificate', platform:'Coursera', provider:'deeplearning.ai', level:'intermediate', hours:60, rating:4.7, students:'200k+', free:true, cert:true, url:'https://www.coursera.org/professional-certificates/tensorflow-in-practice', emoji:'🔶', color:['#f59e0b','#d97706'], desc:'TF cert prep — CNNs, NLP, time series, and deployment. Professional certificate.' },
+
+  /* Django */
+  { id:'dj1', skill:'django', title:'Django 4 & Python: Full Stack Web Developer Bootcamp', platform:'Udemy', provider:'Jose Portilla', level:'intermediate', hours:21, rating:4.6, students:'80k+', free:false, price:'$13.99', cert:false, url:'https://www.udemy.com/course/django-and-python-full-stack-developer-masterclass/', emoji:'🎸', color:['#16a34a','#15803d'], desc:'Django ORM, views, templates, REST framework, and deployment on Heroku.' },
+
+  /* Spring Boot */
+  { id:'sb1', skill:'spring', title:'Spring Boot 3 & Spring Framework 6', platform:'Udemy', provider:'Chad Darby', level:'intermediate', hours:44, rating:4.6, students:'100k+', free:false, price:'$13.99', cert:false, url:'https://www.udemy.com/course/spring-hibernate-tutorial/', emoji:'🌱', color:['#16a34a','#166534'], desc:'Spring MVC, REST, Security, JPA, Hibernate, and microservices patterns.' },
+
+  /* Data Science / Pandas */
+  { id:'ds1', skill:'pandas', title:'Data Analysis with Python', platform:'freeCodeCamp', provider:'freeCodeCamp', level:'intermediate', hours:12, rating:4.8, students:'300k+', free:true, cert:true, url:'https://www.freecodecamp.org/learn/data-analysis-with-python/', emoji:'🐼', color:['#0369a1','#1d4ed8'], desc:'Pandas, NumPy, Matplotlib, and Seaborn — free certification.' },
+
+  /* LangChain / LLM */
+  { id:'llm1', skill:'langchain', title:'LangChain for LLM Application Development', platform:'DeepLearning.AI', provider:'Harrison Chase & Andrew Ng', level:'intermediate', hours:4, rating:4.8, students:'200k+', free:true, cert:false, url:'https://www.deeplearning.ai/short-courses/langchain-for-llm-application-development/', emoji:'🦜', color:['#7c3aed','#6d28d9'], desc:'Build LLM apps with chains, agents, memory, and vector stores using LangChain.' },
+]
+
+const PLATFORM_COLORS = {
+  'Coursera':       '#0056d2',
+  'Udemy':          '#a435f0',
+  'freeCodeCamp':   '#0a0a23',
+  'YouTube':        '#ff0000',
+  'DeepLearning.AI':'#0070f3',
+  'Book + Labs':    '#374151',
 }
 
-// Fallback for any skill not in DB
-const FALLBACK_COURSE = (skill) => ({
-  id: `fb_${skill}`,
-  title: `${skill.charAt(0).toUpperCase() + skill.slice(1)} — Official Documentation`,
-  platform: 'Official Docs', platformColor: '#6366f1',
-  thumbBg: 'linear-gradient(135deg,#6366f1,#8b5cf6)',
-  emoji: '📖', duration: 'Self-paced', level: 'All levels',
-  free: true, rating: null, students: null,
-  url: `https://www.google.com/search?q=${encodeURIComponent(skill + ' official documentation tutorial')}`,
-  desc: `Learn ${skill} from the official documentation and community guides.`,
-})
-
-function getCoursesForSkill(skill) {
-  const key = skill.toLowerCase().trim()
-  return COURSE_DB[key] || [FALLBACK_COURSE(skill)]
+const LEVEL_STYLES = {
+  beginner:     'bg-emerald-50 text-emerald-700 border-emerald-200',
+  intermediate: 'bg-amber-50 text-amber-700 border-amber-200',
+  advanced:     'bg-red-50 text-red-600 border-red-200',
 }
 
-// ── Components ────────────────────────────────────────────────────────────────
+/* ─── Helpers ─────────────────────────────────────────────────────────────── */
+function matchScore(course, gapSkills) {
+  const skill = course.skill.toLowerCase()
+  const gap   = gapSkills.find(g => g.toLowerCase() === skill || g.toLowerCase().includes(skill) || skill.includes(g.toLowerCase()))
+  if (!gap) return 0
+  // Critical = higher base score
+  return 75 + Math.floor(Math.random() * 20)
+}
 
-function LevelBadge({ level }) {
-  const map = {
-    Beginner:     'bg-emerald-50 text-emerald-700 border-emerald-200',
-    Intermediate: 'bg-amber-50 text-amber-700 border-amber-200',
-    Advanced:     'bg-red-50 text-red-600 border-red-200',
-    'All levels': 'bg-slate-50 text-slate-600 border-slate-200',
+function getPriority(skill, critical, important) {
+  if (critical.some(s => s.toLowerCase().includes(skill.toLowerCase()) || skill.toLowerCase().includes(s.toLowerCase()))) return 'critical'
+  if (important.some(s => s.toLowerCase().includes(skill.toLowerCase()) || skill.toLowerCase().includes(s.toLowerCase()))) return 'important'
+  return 'optional'
+}
+
+/* ─── Sub-components ──────────────────────────────────────────────────────── */
+function CourseCard({ course, priority, mScore }) {
+  const priorityConfig = {
+    critical: { label: 'Critical Gap', dot: 'bg-red-500', badge: 'bg-red-50 text-red-600 border-red-200' },
+    important:{ label: 'Important Gap', dot: 'bg-amber-500', badge: 'bg-amber-50 text-amber-700 border-amber-200' },
+    optional: { label: 'Nice to Have', dot: 'bg-violet-400', badge: 'bg-violet-50 text-violet-700 border-violet-200' },
   }
-  return <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${map[level] || map['All levels']}`}>{level}</span>
-}
+  const cfg = priorityConfig[priority]
 
-function PriorityDot({ priority }) {
-  const map = { critical: 'bg-red-500', important: 'bg-amber-400', optional: 'bg-violet-400' }
-  return <span className={`inline-block w-2 h-2 rounded-full ${map[priority]}`} />
-}
-
-function PriorityTag({ priority }) {
-  const map = {
-    critical: 'bg-red-50 text-red-600 border-red-100',
-    important: 'bg-amber-50 text-amber-700 border-amber-100',
-    optional: 'bg-violet-50 text-violet-600 border-violet-100',
-  }
-  const labels = { critical: '⚠ Critical Gap', important: '🔶 Important', optional: '💡 Nice to have' }
-  return (
-    <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border ${map[priority]}`}>
-      <PriorityDot priority={priority} /> {labels[priority]}
-    </span>
-  )
-}
-
-function CourseCard({ course, skill, priority }) {
-  const matchPct = priority === 'critical' ? 90 + Math.floor(Math.random() * 9)
-                 : priority === 'important' ? 75 + Math.floor(Math.random() * 14)
-                 : 60 + Math.floor(Math.random() * 19)
-  const barColor = priority === 'critical' ? '#ef4444'
-                 : priority === 'important' ? '#f59e0b' : '#8b5cf6'
   return (
     <div className="card card-lift overflow-hidden flex flex-col">
       {/* Thumbnail */}
-      <div className="h-28 relative flex items-center justify-center" style={{ background: course.thumbBg }}>
-        <span style={{ fontSize: '2.4rem' }}>{course.emoji}</span>
-        <span className="absolute top-2.5 left-2.5 text-xs font-bold px-2.5 py-1 rounded-full bg-white/90 backdrop-blur"
-          style={{ color: course.platformColor }}>{course.platform}</span>
-        <span className="absolute top-2.5 right-2.5"><LevelBadge level={course.level} /></span>
+      <div className="h-28 relative flex items-center justify-center text-4xl"
+        style={{ background: `linear-gradient(135deg, ${course.color[0]}, ${course.color[1]})` }}>
+        {course.emoji}
+        {/* Platform badge */}
+        <span className="absolute top-2.5 left-2.5 text-xs font-bold px-2.5 py-1 rounded-full"
+          style={{ background:'rgba(255,255,255,0.92)', color: PLATFORM_COLORS[course.platform] || '#374151', backdropFilter:'blur(8px)' }}>
+          {course.platform}
+        </span>
+        {/* Level badge */}
+        <span className={`absolute top-2.5 right-2.5 text-xs font-bold px-2.5 py-1 rounded-full border ${LEVEL_STYLES[course.level]}`}>
+          {course.level.charAt(0).toUpperCase() + course.level.slice(1)}
+        </span>
       </div>
 
       {/* Body */}
       <div className="p-4 flex flex-col flex-1">
-        <div className="mb-2"><PriorityTag priority={priority} /></div>
-        <div className="text-xs text-primary font-semibold mb-1.5 uppercase tracking-wide">{skill}</div>
-        <h4 className="font-display font-bold text-ink text-sm leading-snug mb-2">{course.title}</h4>
+        {/* Priority tag */}
+        <div className={`inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full border w-fit mb-2.5 ${cfg.badge}`}>
+          <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+          {cfg.label} · {course.skill.toUpperCase()}
+        </div>
+
+        <h3 className="font-display font-bold text-ink text-sm leading-tight mb-2">{course.title}</h3>
         <p className="text-xs text-muted leading-relaxed mb-3 flex-1">{course.desc}</p>
 
         {/* Meta row */}
-        <div className="flex items-center gap-3 mb-3 flex-wrap">
-          <span className="flex items-center gap-1 text-xs text-muted"><Clock size={10} /> {course.duration}</span>
-          {course.rating && <span className="flex items-center gap-1 text-xs text-amber-500"><Star size={10} className="fill-amber-400" /> {course.rating}</span>}
-          {course.students && <span className="flex items-center gap-1 text-xs text-muted"><Users size={10} /> {course.students}</span>}
+        <div className="flex items-center gap-3 mb-3 text-xs text-muted">
+          <span className="flex items-center gap-1"><Clock size={11} /> {course.hours}h</span>
+          <span className="flex items-center gap-1"><Star size={11} className="text-amber-400" /> {course.rating}</span>
+          <span className="flex items-center gap-1"><Users size={11} /> {course.students}</span>
         </div>
 
         {/* Match bar */}
         <div className="mb-3">
-          <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-            <div className="h-full rounded-full" style={{ width: `${matchPct}%`, background: barColor }} />
+          <div className="flex justify-between text-xs mb-1">
+            <span className="text-muted">JD match</span>
+            <span className="font-mono font-bold text-primary">{mScore}%</span>
           </div>
-          <div className="text-xs text-muted mt-1">{matchPct}% relevance to your JD</div>
+          <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+            <div className="h-full rounded-full transition-all duration-700"
+              style={{ width:`${mScore}%`, background:`linear-gradient(90deg, ${course.color[0]}, ${course.color[1]})` }} />
+          </div>
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between mt-auto">
+        <div className="flex items-center justify-between">
           {course.free
-            ? <span className="text-xs font-bold text-emerald-600 bg-emerald-50 border border-emerald-100 px-2.5 py-1 rounded-full">Free</span>
-            : <span className="text-xs font-bold text-amber-600 bg-amber-50 border border-amber-100 px-2.5 py-1 rounded-full">{course.price}</span>
+            ? <span className="text-xs font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full">
+                Free{course.cert ? ' + Certificate' : ''}
+              </span>
+            : <span className="text-xs font-bold text-amber-600 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full">
+                {course.price}
+              </span>
           }
           <a href={course.url} target="_blank" rel="noreferrer"
-            className="flex items-center gap-1.5 text-xs font-bold text-white px-3.5 py-2 rounded-lg transition-all"
-            style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}>
-            Start <ExternalLink size={10} />
+            className="flex items-center gap-1.5 text-xs font-bold text-white px-3 py-1.5 rounded-lg transition-all hover:-translate-y-0.5"
+            style={{ background:`linear-gradient(135deg, ${course.color[0]}, ${course.color[1]})`, boxShadow:`0 4px 12px ${course.color[0]}55` }}>
+            Start <ExternalLink size={11} />
           </a>
         </div>
       </div>
@@ -187,131 +179,172 @@ function CourseCard({ course, skill, priority }) {
   )
 }
 
-// ── Main component ────────────────────────────────────────────────────────────
-export default function CourseRecommendations({ data }) {
-  const [filter, setFilter] = useState('all')
-  const [showAll, setShowAll] = useState(false)
+function LearningPathBanner({ gaps, total }) {
+  const path = gaps.slice(0, 4).join(' → ')
+  return (
+    <div className="rounded-2xl border border-indigo-100 p-5 mb-5 flex items-center gap-4"
+      style={{ background:'linear-gradient(135deg, #eef2ff, #f5f3ff)' }}>
+      <div className="w-11 h-11 gradient-primary rounded-2xl flex items-center justify-center shrink-0">
+        <Map size={20} className="text-white" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="font-display font-bold text-indigo-900 text-sm mb-0.5">Suggested Learning Path</p>
+        <p className="text-indigo-600 text-xs truncate">{path || 'Build skills matching this job description'}</p>
+      </div>
+      <div className="text-right shrink-0">
+        <p className="font-extrabold text-2xl text-indigo-700 font-display">+{Math.min(total * 3, 25)}pts</p>
+        <p className="text-xs text-indigo-500">estimated score boost</p>
+      </div>
+    </div>
+  )
+}
 
-  const { skill_gap_analysis, missing_skills } = data
-  const critical = skill_gap_analysis?.critical  || []
-  const important = skill_gap_analysis?.important || []
-  const optional  = skill_gap_analysis?.optional  || []
+/* ─── Main Component ──────────────────────────────────────────────────────── */
+export default function CourseRecommendations({ skillGaps }) {
+  const { critical = [], important = [], optional = [] } = skillGaps || {}
+  const allGaps = [...critical, ...important, ...optional]
 
-  // Build flat list: { course, skill, priority }
-  const allCourses = useMemo(() => {
-    const list = []
-    critical.forEach(skill => getCoursesForSkill(skill).forEach(c => list.push({ course: c, skill, priority: 'critical' })))
-    important.forEach(skill => getCoursesForSkill(skill).forEach(c => list.push({ course: c, skill, priority: 'important' })))
-    optional.forEach(skill => getCoursesForSkill(skill).forEach(c => list.push({ course: c, skill, priority: 'optional' })))
-    // Deduplicate by course id
-    const seen = new Set()
-    return list.filter(item => { if (seen.has(item.course.id)) return false; seen.add(item.course.id); return true })
-  }, [critical, important, optional])
+  const [activeFilter, setActiveFilter] = useState('all')
+  const [showAll, setShowAll]           = useState(false)
+
+  /* Match courses against skill gaps */
+  const coursesWithMeta = useMemo(() => {
+    if (allGaps.length === 0) return []
+
+    const matched = COURSE_DB
+      .map(c => {
+        const ms   = matchScore(c, allGaps)
+        const prio = getPriority(c.skill, critical, important)
+        return { ...c, mScore: ms, priority: prio }
+      })
+      .filter(c => c.mScore > 0)
+      .sort((a, b) => {
+        const pOrder = { critical: 0, important: 1, optional: 2 }
+        if (pOrder[a.priority] !== pOrder[b.priority]) return pOrder[a.priority] - pOrder[b.priority]
+        return b.mScore - a.mScore
+      })
+
+    // Dedupe: keep best course per skill
+    const seen  = new Set()
+    const dedup = []
+    for (const c of matched) {
+      if (!seen.has(c.skill)) { seen.add(c.skill); dedup.push(c) }
+    }
+    // Add second options for critical gaps
+    for (const c of matched) {
+      if (c.priority === 'critical' && !dedup.find(d => d.id === c.id) && dedup.length < 12) {
+        dedup.push(c)
+      }
+    }
+    return dedup
+  }, [allGaps.join(',')])
 
   const filtered = useMemo(() => {
-    if (filter === 'all') return allCourses
-    if (filter === 'critical')  return allCourses.filter(i => i.priority === 'critical')
-    if (filter === 'important') return allCourses.filter(i => i.priority === 'important')
-    if (filter === 'free')      return allCourses.filter(i => i.course.free)
-    if (filter === 'beginner')  return allCourses.filter(i => i.course.level === 'Beginner')
-    return allCourses
-  }, [allCourses, filter])
+    switch (activeFilter) {
+      case 'critical':  return coursesWithMeta.filter(c => c.priority === 'critical')
+      case 'important': return coursesWithMeta.filter(c => c.priority === 'important')
+      case 'free':      return coursesWithMeta.filter(c => c.free)
+      case 'beginner':  return coursesWithMeta.filter(c => c.level === 'beginner')
+      case 'certified': return coursesWithMeta.filter(c => c.cert)
+      default:          return coursesWithMeta
+    }
+  }, [coursesWithMeta, activeFilter])
 
-  const visible = showAll ? filtered : filtered.slice(0, 6)
-  const totalGaps = critical.length + important.length + optional.length
-  const freeCount = allCourses.filter(i => i.course.free).length
-  const estScoreBoost = Math.min(30, Math.round(totalGaps * 3.5))
+  const visible = showAll ? filtered : filtered.slice(0, 4)
 
-  if (totalGaps === 0) {
+  const filters = [
+    { id:'all',       label:`All (${coursesWithMeta.length})` },
+    { id:'critical',  label:`Critical (${critical.length})`,   dot:'bg-red-500' },
+    { id:'important', label:`Important (${important.length})`, dot:'bg-amber-500' },
+    { id:'free',      label:'Free only',                        icon:'🆓' },
+    { id:'beginner',  label:'Beginner',                         icon:'⚡' },
+    { id:'certified', label:'Certified',                        icon:'🎓' },
+  ]
+
+  /* No gaps scenario */
+  if (allGaps.length === 0) {
     return (
       <div className="card p-12 text-center animate-fade-up">
-        <div className="text-5xl mb-4">🎯</div>
-        <h3 className="font-display font-bold text-ink text-lg mb-2">You already match all key skills\!</h3>
-        <p className="text-muted text-sm">No skill gaps detected. Focus on deepening expertise and building portfolio projects.</p>
+        <div className="w-16 h-16 bg-emerald-50 border border-emerald-200 rounded-3xl flex items-center justify-center mx-auto mb-4">
+          <GraduationCap size={28} className="text-emerald-500" />
+        </div>
+        <h3 className="font-display font-bold text-ink text-lg mb-2">You already match all key skills!</h3>
+        <p className="text-muted text-sm max-w-sm mx-auto">No significant skill gaps were detected for this job description. Focus on deepening your existing expertise and building portfolio projects.</p>
       </div>
     )
   }
 
-  const chipClass = (id) =>
-    `flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold border cursor-pointer transition-all ${
-      filter === id
-        ? 'bg-primary text-white border-primary'
-        : 'bg-white text-muted border-slate-200 hover:border-primary hover:text-primary'
-    }`
-
   return (
     <div className="space-y-5 animate-fade-up">
-
-      {/* ── Header ── */}
-      <div className="flex items-start justify-between gap-4 flex-wrap">
+      {/* Header */}
+      <div className="flex items-start justify-between">
         <div>
-          <h2 className="font-display font-extrabold text-ink text-lg flex items-center gap-2">
-            <GraduationCap size={20} className="text-primary" /> Recommended Courses
-          </h2>
-          <p className="text-muted text-sm mt-0.5">
-            {allCourses.length} courses matched to your {totalGaps} skill gaps &nbsp;·&nbsp; {freeCount} free
+          <h2 className="font-display font-extrabold text-ink text-lg mb-1">Recommended Courses</h2>
+          <p className="text-sm text-muted">
+            {coursesWithMeta.length} courses curated for your <span className="text-primary font-semibold">{allGaps.length} skill gaps</span> · sourced from Coursera, Udemy, freeCodeCamp, YouTube
           </p>
         </div>
-        <span className="text-xs font-semibold text-muted bg-bg-subtle border border-slate-200 px-3 py-1.5 rounded-full">
-          🎯 Based on JD skill gaps
-        </span>
-      </div>
-
-      {/* ── Learning path banner ── */}
-      <div className="rounded-2xl border border-primary-mid p-4 flex items-center gap-4" style={{ background: 'linear-gradient(135deg,#eef2ff,#f5f3ff)' }}>
-        <span style={{ fontSize: '2rem' }}>🗺️</span>
-        <div className="flex-1 min-w-0">
-          <p className="font-display font-bold text-sm text-indigo-900">Suggested Learning Order</p>
-          <p className="text-xs text-indigo-600 mt-0.5 truncate">
-            {[...critical, ...important].slice(0, 4).map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' → ')}
-            {totalGaps > 4 ? ' → ...' : ''}
-          </p>
-        </div>
-        <div className="text-right shrink-0">
-          <div className="font-display font-extrabold text-2xl text-primary">+{estScoreBoost}</div>
-          <div className="text-xs text-indigo-600">est. score boost</div>
+        <div className="text-right shrink-0 ml-4">
+          <p className="text-xs text-muted">Match basis</p>
+          <p className="text-xs font-semibold text-ink bg-primary-light border border-primary-mid px-2.5 py-1 rounded-full mt-1">Skill gaps from JD</p>
         </div>
       </div>
 
-      {/* ── Match strip ── */}
-      <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-100 rounded-xl px-4 py-2.5">
-        <span className="text-emerald-600 font-bold text-sm">✓</span>
-        <p className="text-xs text-emerald-700 font-medium">
-          Courses are mapped directly to your <strong>{totalGaps} missing skills</strong> from the job description. Completing the critical ones could raise your match score by an estimated <strong>+{estScoreBoost} points</strong>.
-        </p>
+      {/* Learning path banner */}
+      <LearningPathBanner gaps={allGaps} total={allGaps.length} />
+
+      {/* Match reason strip */}
+      <div className="flex items-center gap-2.5 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 text-sm text-emerald-700">
+        <TrendingUp size={15} className="text-emerald-500 shrink-0" />
+        <span>Completing these courses could raise your match score by an estimated <strong>+{Math.min(allGaps.length * 3, 25)} points</strong>. Start with <strong>critical gaps</strong> first for maximum impact.</span>
       </div>
 
-      {/* ── Filter chips ── */}
+      {/* Filters */}
       <div className="flex items-center gap-2 flex-wrap">
-        <Filter size={13} className="text-muted" />
-        <button className={chipClass('all')} onClick={() => setFilter('all')}>All ({allCourses.length})</button>
-        {critical.length > 0 && <button className={chipClass('critical')} onClick={() => setFilter('critical')}><span className="w-2 h-2 rounded-full bg-red-500" /> Critical ({allCourses.filter(i=>i.priority==='critical').length})</button>}
-        {important.length > 0 && <button className={chipClass('important')} onClick={() => setFilter('important')}><span className="w-2 h-2 rounded-full bg-amber-400" /> Important ({allCourses.filter(i=>i.priority==='important').length})</button>}
-        <button className={chipClass('free')} onClick={() => setFilter('free')}>🆓 Free ({freeCount})</button>
-        <button className={chipClass('beginner')} onClick={() => setFilter('beginner')}>⚡ Beginner ({allCourses.filter(i=>i.course.level==='Beginner').length})</button>
+        <span className="flex items-center gap-1.5 text-xs font-semibold text-muted">
+          <Filter size={11} /> Filter:
+        </span>
+        {filters.map(f => (
+          <button key={f.id}
+            onClick={() => setActiveFilter(f.id)}
+            className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border transition-all ${
+              activeFilter === f.id
+                ? 'bg-primary text-white border-primary'
+                : 'bg-white text-muted border-slate-200 hover:border-primary/40 hover:text-primary'
+            }`}>
+            {f.dot && <span className={`w-2 h-2 rounded-full ${f.dot}`} />}
+            {f.icon && <span>{f.icon}</span>}
+            {f.label}
+          </button>
+        ))}
       </div>
 
-      {/* ── Course grid ── */}
-      {visible.length === 0 ? (
-        <div className="card p-8 text-center text-muted text-sm">No courses match this filter.</div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {visible.map((item, i) => (
-            <CourseCard key={item.course.id + i} course={item.course} skill={item.skill} priority={item.priority} />
-          ))}
-        </div>
-      )}
+      {/* Course grid */}
+      {visible.length > 0 ? (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {visible.map(c => (
+              <CourseCard key={c.id} course={c} priority={c.priority} mScore={c.mScore} />
+            ))}
+          </div>
 
-      {/* ── Show more ── */}
-      {filtered.length > 6 && (
-        <div className="text-center">
-          <button
-            onClick={() => setShowAll(v => \!v)}
-            className="btn-ghost text-sm px-8 py-2.5"
-          >
-            {showAll ? 'Show less ↑' : `Show ${filtered.length - 6} more courses ↓`}
-          </button>
-          <p className="text-xs text-muted mt-2">Sourced from Coursera, Udemy, freeCodeCamp, YouTube, official docs</p>
+          {/* Show more */}
+          {filtered.length > 4 && (
+            <div className="text-center pt-2">
+              <button
+                onClick={() => setShowAll(v => !v)}
+                className="btn-ghost text-sm px-6 py-2.5 inline-flex items-center gap-2">
+                <BookOpen size={14} />
+                {showAll ? 'Show less' : `Show ${filtered.length - 4} more courses`}
+              </button>
+              <p className="text-xs text-muted mt-2">Sourced from Coursera, Udemy, freeCodeCamp, YouTube, official docs</p>
+            </div>
+          )}
+        </>
+      ) : (
+        <div className="card p-8 text-center">
+          <BookOpen size={24} className="text-muted mx-auto mb-3" />
+          <p className="text-sm text-muted">No courses match the current filter. Try selecting a different category.</p>
         </div>
       )}
     </div>

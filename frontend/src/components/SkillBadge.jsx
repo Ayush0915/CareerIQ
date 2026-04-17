@@ -1,24 +1,32 @@
 import React from 'react'
 
-const variants = {
-  match:    'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100',
-  critical: 'bg-red-50 border-red-200 text-red-600 hover:bg-red-100',
-  important:'bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100',
-  optional: 'bg-indigo-50 border-indigo-200 text-indigo-600 hover:bg-indigo-100',
-  neutral:  'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100',
+const VARIANT_STYLES = {
+  match:    { background:'#F0FDF4', border:'1px solid #BBF7D0', color:'#16A34A' },
+  critical: { background:'#FEF2F2', border:'1px solid #FECACA', color:'#DC2626' },
+  important:{ background:'#FFFBEB', border:'1px solid #FDE68A', color:'#D97706' },
+  optional: { background:'#EEF0FE', border:'1px solid #D8DCFC', color:'#5147E5' },
+  neutral:  { background:'#F5F6FA', border:'1px solid #E8EAF0', color:'#6B7280' },
 }
-const dots = {
-  match:    'bg-emerald-400',
-  critical: 'bg-red-400',
-  important:'bg-amber-400',
-  optional: 'bg-indigo-400',
-  neutral:  'bg-slate-400',
+
+const DOT_COLORS = {
+  match:    '#22C55E',
+  critical: '#EF4444',
+  important:'#F59E0B',
+  optional: '#5147E5',
+  neutral:  '#9CA3AF',
 }
 
 export default function SkillBadge({ skill, variant = 'neutral' }) {
+  const s = VARIANT_STYLES[variant] || VARIANT_STYLES.neutral
+  const dot = DOT_COLORS[variant] || DOT_COLORS.neutral
   return (
-    <span className={`badge border transition-colors cursor-default ${variants[variant]}`}>
-      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dots[variant]}`} />
+    <span style={{
+      display:'inline-flex', alignItems:'center', gap:5,
+      padding:'3px 10px', borderRadius:99,
+      fontSize:'0.7rem', fontWeight:600,
+      ...s,
+    }}>
+      <span style={{ width:6, height:6, borderRadius:'50%', background:dot, flexShrink:0 }} />
       {skill}
     </span>
   )

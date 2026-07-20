@@ -7,7 +7,8 @@ import time
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Request
 from models.schemas import AnalysisResponse, TopMatch
 
-from services.parser import parse_resume
+from typing import Optional
+from services.parser import parse_resume, extract_text_from_pdf, extract_text_from_docx
 from services.skill_extractor import load_skills, extract_skills_from_text
 from services.similarity import calculate_similarity
 from services.recommender import calculate_keyword_coverage, get_missing_skills, get_matching_skills, generate_feedback
@@ -35,7 +36,8 @@ def _run_sync(fn, *args):
 async def analyze_resume(
     request: Request,
     file: UploadFile = File(...),
-    job_description: str = Form(...),
+    job_description: Optional[str] = Form(""),
+    job_description_file: Optional[UploadFile] = File(None),
 ):
     t0 = time.perf_counter()
 
@@ -43,12 +45,6 @@ async def analyze_resume(
     ext = (file.filename or "").rsplit(".", 1)[-1].lower()
     if ext not in {"pdf", "docx"}:
         raise HTTPException(400, detail="Only PDF and DOCX files are supported.")
-
-    jd = job_description.strip()
-    if len(jd) < 30:
-        raise HTTPException(400, detail="Job description is too short. Please paste more content.")
-    if len(jd) > MAX_JD_LENGTH:
-        jd = jd[:MAX_JD_LENGTH]
 
     # ── File size check ───────────────────────────────────────────────────────
     raw_bytes = await file.read()
@@ -64,6 +60,39 @@ async def analyze_resume(
     with tempfile.NamedTemporaryFile(delete=False, suffix=f".{ext}") as tmp:
         tmp.write(raw_bytes)
         tmp_path = tmp.name
+
+    tmp_jd_path = None
+    try:
+        jd = (job_description or "").strip()
+
+        # If pasted text isn't provided, check for job_description_file
+        if not jd and job_description_file:
+            jd_ext = (job_description_file.filename or "").rsplit(".", 1)[-1].lower()
+            if jd_ext not in {"pdf", "docx"}:
+                raise HTTPException(400, detail="Job description file must be PDF or DOCX.")
+
+            jd_bytes = await job_description_file.read()
+            if len(jd_bytes) > MAX_FILE_SIZE:
+                raise HTTPException(413, detail=f"Job description file exceeds {MAX_FILE_SIZE // 1024 // 1024} MB limit.")
+
+            if jd_ext == "pdf" and not jd_bytes.startswith(b"%PDF-"):
+                raise HTTPException(400, detail="Job description file content doesn't match its extension.")
+            if jd_ext == "docx" and not jd_bytes.startswith(b"PK\x03\x04"):
+                raise HTTPException(400, detail="Job description file content doesn't match its extension.")
+
+            with tempfile.NamedTemporaryFile(delete=False, suffix=f".{jd_ext}") as tmp_jd:
+                tmp_jd.write(jd_bytes)
+                tmp_jd_path = tmp_jd.name
+
+            if jd_ext == "pdf":
+                jd = extract_text_from_pdf(tmp_jd_path).strip()
+            else:
+                jd = extract_text_from_docx(tmp_jd_path).strip()
+
+        if len(jd) < 30:
+            raise HTTPException(400, detail="Job description is too short. Please paste or upload more content.")
+        if len(jd) > MAX_JD_LENGTH:
+            jd = jd[:MAX_JD_LENGTH]
 
     try:
         # ── Parse resume ──────────────────────────────────────────────────────
@@ -188,3 +217,8 @@ async def analyze_resume(
             os.unlink(tmp_path)
         except Exception:
             pass
+        if tmp_jd_path:
+            try:
+                os.unlink(tmp_jd_path)
+            except Exception:
+                pass

@@ -7,7 +7,7 @@ export function useAnalysis() {
   const [error, setError] = useState(null)
   const [progress, setProgress] = useState(0)
 
-  async function run(file, jobDescription) {
+  async function run(file, jobDescription, jobDescriptionFile = null) {
     setLoading(true)
     setError(null)
     setData(null)
@@ -32,7 +32,7 @@ export function useAnalysis() {
     }, 1200)
 
     try {
-      const result = await analyzeResume(file, jobDescription)
+      const result = await analyzeResume(file, jobDescription, jobDescriptionFile)
       clearInterval(interval)
       setProgress(100)
       await new Promise(r => setTimeout(r, 300))
@@ -40,7 +40,8 @@ export function useAnalysis() {
 
       // Save analysis to localStorage history (capped at 5)
       try {
-        const firstLine = jobDescription.trim().split('\n')[0].slice(0, 35)
+        const jdText = typeof jobDescription === 'string' ? jobDescription.trim() : ''
+        const firstLine = jdText ? jdText.split('\n')[0].slice(0, 35) : (jobDescriptionFile?.name || 'Resume Analysis')
         const jobTitle = firstLine || 'Resume Analysis'
         const existing = JSON.parse(localStorage.getItem('careeriq_history') || '[]')
         const item = {

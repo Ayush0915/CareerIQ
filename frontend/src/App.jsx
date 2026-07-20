@@ -380,7 +380,7 @@ export default function App() {
           </div>
         )}
         {!loading && data && <ResultsDashboard data={data} onReset={reset} onSelectAnalysis={loadAnalysis} />}
-        {!loading && !data && !error && <HeroSection onStart={(f,jd) => run(f,jd)} />}
+        {!loading && !data && !error && <HeroSection onStart={(f,jd,jf) => run(f,jd,jf)} />}
       </main>
     </div>
   )

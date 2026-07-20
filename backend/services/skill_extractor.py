@@ -16,12 +16,26 @@ SYNONYMS = {
 import os as _os
 _SKILLS_PATH = _os.path.join(_os.path.dirname(_os.path.dirname(__file__)), "skills_database.csv")
 
+FALLBACK_SKILLS = [
+    "python", "fastapi", "django", "flask", "react", "javascript", "typescript",
+    "vue", "angular", "node.js", "express", "html", "css", "tailwind", "docker",
+    "kubernetes", "aws", "azure", "gcp", "devops", "ci/cd", "git", "github",
+    "sql", "postgresql", "mysql", "mongodb", "redis", "pandas", "numpy",
+    "scikit-learn", "tensorflow", "pytorch", "machine learning", "deep learning",
+    "nlp", "data analysis", "java", "spring", "c++", "c#", "go", "rust"
+]
+
 def load_skills(file_path: str = None) -> list:
     if file_path is None:
         file_path = _SKILLS_PATH
-    df = pd.read_csv(file_path)
-    skills = df["skill"].dropna().tolist()
-    return [skill.lower().strip() for skill in skills]
+    try:
+        if _os.path.exists(file_path):
+            df = pd.read_csv(file_path)
+            skills = df["skill"].dropna().tolist()
+            return [str(skill).lower().strip() for skill in skills if str(skill).strip()]
+    except Exception as e:
+        print(f"[skill_extractor] Warning reading {file_path}: {e}")
+    return FALLBACK_SKILLS
 
 
 def normalize_text(text: str) -> str:

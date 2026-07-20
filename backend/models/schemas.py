@@ -69,8 +69,9 @@ class LLMEvaluation(BaseModel):
 
 
 class ATSCheckResult(BaseModel):
-    score:   float
-    note:    str
+    score:    float
+    note:     str
+    evidence: Optional[Dict[str, Any]] = None
 
 
 class ATSSimulation(BaseModel):

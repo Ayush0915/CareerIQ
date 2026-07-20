@@ -93,7 +93,23 @@ function CheckRow({ checkKey, data }) {
 
       {open && (
         <div style={{ padding:'0 18px 14px 60px' }} className="animate-fade-in">
-          <p style={{ fontSize:'0.78rem', color:'#6B7280', marginBottom: details.length ? 8 : 0, lineHeight:1.55 }}>{data.note}</p>
+          <p style={{ fontSize:'0.78rem', color:'#6B7280', marginBottom: (details.length || data.evidence?.examples?.length) ? 8 : 0, lineHeight:1.55 }}>{data.note}</p>
+          
+          {data.evidence?.examples?.length > 0 && (
+            <div style={{ background:'#F8FAFC', border:'1px solid #E2E8F0', borderRadius:8, padding:'8px 12px', marginBottom:8 }}>
+              <span style={{ fontSize:'0.65rem', fontWeight:700, color:'#64748B', textTransform:'uppercase', letterSpacing:'0.05em', display:'block', marginBottom:4 }}>
+                Evidence & Concrete Examples
+              </span>
+              <ul style={{ margin:0, padding:0, listStyle:'none', display:'flex', flexDirection:'column', gap:4 }}>
+                {data.evidence.examples.map((ex, idx) => (
+                  <li key={idx} style={{ fontSize:'0.72rem', color:'#334155', fontFamily:'monospace', background:'#FFFFFF', padding:'3px 8px', borderRadius:4, border:'1px solid #E2E8F0' }}>
+                    {ex}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           {details.length > 0 && (
             <ul style={{ margin:0, padding:0, listStyle:'none', display:'flex', flexDirection:'column', gap:4 }}>
               {details.map((d, i) => (

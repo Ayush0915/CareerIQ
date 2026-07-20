@@ -37,6 +37,24 @@ export function useAnalysis() {
       setProgress(100)
       await new Promise(r => setTimeout(r, 300))
       setData(result)
+
+      // Save analysis to localStorage history (capped at 5)
+      try {
+        const firstLine = jobDescription.trim().split('\n')[0].slice(0, 35)
+        const jobTitle = firstLine || 'Resume Analysis'
+        const existing = JSON.parse(localStorage.getItem('careeriq_history') || '[]')
+        const item = {
+          id: crypto.randomUUID(),
+          createdAt: Date.now(),
+          jobTitle: jobTitle,
+          score: result.semantic_match_score,
+          response: result
+        }
+        const updated = [item, ...existing].slice(0, 5)
+        localStorage.setItem('careeriq_history', JSON.stringify(updated))
+      } catch (err) {
+        console.warn('Could not save history to localStorage', err)
+      }
     } catch (err) {
       clearInterval(interval)
       setError(err.response?.data?.detail || 'Analysis failed. Please try again.')
@@ -51,5 +69,11 @@ export function useAnalysis() {
     setProgress(0)
   }
 
-  return { data, loading, error, progress, run, reset }
+  function loadAnalysis(pastResult) {
+    setData(pastResult)
+    setError(null)
+    setLoading(false)
+  }
+
+  return { data, loading, error, progress, run, reset, loadAnalysis }
 }

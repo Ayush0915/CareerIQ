@@ -12,6 +12,7 @@ import JobRecommendations from './JobRecommendations'
 import CourseRecommendations from './CourseRecommendations'
 import ATSBreakdown from './ATSBreakdown'
 import InterviewPrep from './InterviewPrep'
+import AnalysisHistory from './AnalysisHistory'
 import { ShieldCheck, MessageSquare } from 'lucide-react'
 
 const TABS = [
@@ -62,7 +63,7 @@ function AccordionSection({ label, pct, items, defaultOpen = false }) {
   )
 }
 
-function ScoreSidebar({ data, activeTab, onTabChange }) {
+function ScoreSidebar({ data, activeTab, onTabChange, onSelectAnalysis }) {
   const { semantic_match_score, ats_keyword_score, signal_noise, skill_gap_analysis, matching_skills, missing_skills, llm_evaluation: llm } = data
 
   const clarity    = signal_noise?.clarity_score ?? 0
@@ -142,6 +143,7 @@ function ScoreSidebar({ data, activeTab, onTabChange }) {
           </div>
           <p style={{ fontSize:'0.68rem', color:'#6B7280' }}>{totalGaps} courses curated for your gaps</p>
         </div>
+        <AnalysisHistory onSelectAnalysis={onSelectAnalysis} />
       </div>
     </aside>
   )
@@ -319,8 +321,6 @@ function SkillsTab({ data }) {
         {(signal_noise?.strong_verbs_found?.length ?? 0) > 0 && (
           <div>
             <p style={{ fontSize:'0.68rem', fontWeight:700, color:'#22C55E', textTransform:'uppercase', letterSpacing:'0.07em', marginBottom:6 }}>Strong Action Verbs</p>
-            <div style={{ display:'flex', flexWrap:'wrap', gap:5 }}>{signal_noise.strong_verbs_found.map(v => <SkillBadge key={v} skill={v} variant="match" />)}</div>
-          </div>
         )}
       </div>
     </div>
@@ -328,23 +328,29 @@ function SkillsTab({ data }) {
 }
 
 /* ── Root ── */
-export default function ResultsDashboard({ data, onReset }) {
+export default function ResultsDashboard({ data, onReset, onSelectAnalysis }) {
   const [activeTab, setActiveTab] = useState('overview')
-  const { semantic_match_score, ats_keyword_score, signal_noise, skill_gap_analysis } = data
-  const clarity = signal_noise?.clarity_score ?? 0
-  const overall = Math.round(semantic_match_score * 0.4 + ats_keyword_score * 0.35 + clarity * 0.25)
-  const totalGaps = (skill_gap_analysis?.critical?.length??0)+(skill_gap_analysis?.important?.length??0)+(skill_gap_analysis?.optional?.length??0)
+  if (!data) return null
+
+  const clarity = data.signal_noise?.clarity_score ?? 0
+  const overall = Math.round(data.semantic_match_score * 0.4 + data.ats_keyword_score * 0.35 + clarity * 0.25)
+  const totalGaps = (data.skill_gap_analysis?.critical?.length ?? 0) + (data.skill_gap_analysis?.important?.length ?? 0) + (data.skill_gap_analysis?.optional?.length ?? 0)
 
   return (
-    <div style={{ minHeight:'100vh', background:'#F5F6FA', paddingTop:60 }}>
-      {/* ── Full-width sticky tab bar ── */}
-      <div style={{ position:'sticky', top:60, zIndex:40, background:'rgba(255,255,255,0.97)', borderBottom:'1px solid #E8EAF0', backdropFilter:'blur(12px)', boxShadow:'0 1px 6px rgba(0,0,0,0.04)' }}>
-        <div style={{ maxWidth:1280, margin:'0 auto', padding:'0 24px', display:'flex', alignItems:'center', justifyContent:'space-between', height:52 }}>
-          <div style={{ overflowX:'auto' }}>
+    <div style={{ minHeight:'100vh', background:'#F5F6FA', paddingTop:62 }}>
+
+      {/* ── Subheader tab bar ── */}
+      <div style={{ background:'#fff', borderBottom:'1px solid #E8EAF0', position:'sticky', top:62, zIndex:40 }}>
+        <div style={{ maxWidth:1280, margin:'0 auto', padding:'0 28px', height:52, display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:16, overflowX:'auto' }}>
             <div className="ev-tabs">
               {TABS.map(tab => (
-                <button key={tab.id} className={`ev-tab ${activeTab === tab.id ? 'active' : ''}`} onClick={() => setActiveTab(tab.id)}>
-                  <tab.icon size={13} />
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`ev-tab ${activeTab === tab.id ? 'active' : ''}`}
+                >
+                  <tab.icon size={13} color={activeTab === tab.id ? '#5147E5' : '#6B7280'} />
                   {tab.label}
                   {tab.id === 'courses' && totalGaps > 0 && (
                     <span style={{ fontSize:'0.62rem', fontWeight:700, background: activeTab==='courses'?'#5147E5':'#EEF0FE', color: activeTab==='courses'?'#fff':'#5147E5', borderRadius:99, padding:'1px 6px' }}>{totalGaps}</span>
@@ -369,7 +375,7 @@ export default function ResultsDashboard({ data, onReset }) {
 
       {/* ── Two-column layout ── */}
       <div style={{ maxWidth:1280, margin:'0 auto', display:'flex' }}>
-        <ScoreSidebar data={data} activeTab={activeTab} onTabChange={setActiveTab} />
+        <ScoreSidebar data={data} activeTab={activeTab} onTabChange={setActiveTab} onSelectAnalysis={onSelectAnalysis} />
 
         {/* Right content */}
         <div style={{ flex:1, minWidth:0, padding:'24px 24px 48px' }}>

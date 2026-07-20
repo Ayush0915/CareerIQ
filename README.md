@@ -35,6 +35,27 @@ CareerIQ takes your resume and a target job description, then delivers:
 
 ---
 
+## Architecture & Request Flow
+
+```mermaid
+flowchart TD
+    A[Upload PDF/DOCX + JD] --> B[File Validation & Magic Byte Check]
+    B --> C[Parse & Extract Text]
+    C --> D[Fast Local Analysis: Keywords, Similarity, Gaps, Signal/Noise]
+    C --> E[ATS Simulation]
+    C --> F{asyncio.gather Parallel Execution}
+    F -->|Branch 1| G[LLM Master Evaluate via Groq Llama 3.3-70b]
+    F -->|Branch 2| H[Experience Detection]
+    F -->|Branch 3| I[Section Parsing & Scoring]
+    D --> J[Merge & Respond AnalysisResponse]
+    E --> J
+    G --> J
+    H --> J
+    I --> J
+```
+
+---
+
 ## Tech Stack
 
 | Layer | Technologies |

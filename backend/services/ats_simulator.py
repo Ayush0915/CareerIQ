@@ -52,6 +52,11 @@ def _score_contact_info(text: str) -> Dict:
         "found":   list(found.keys()),
         "missing": missing,
         "note":    "All contact fields detected." if not missing else f"Missing: {', '.join(missing)}",
+        "evidence": {
+            "found_fields": list(found.keys()),
+            "missing_fields": missing,
+            "examples": [f"Detected {k}" for k in found.keys()] if found else ["No contact details detected in header"]
+        }
     }
 
 
@@ -66,12 +71,16 @@ def _score_section_headers(text: str) -> Dict:
         "headers_found":   found,
         "critical_missing": missing,
         "note": "All critical sections present." if not missing else f"Add missing sections: {', '.join(missing)}",
+        "evidence": {
+            "headers_found": found,
+            "critical_missing": missing,
+            "examples": [f"Section header '{h.capitalize()}' recognized" for h in found[:2]] if found else ["Standard section headers not found"]
+        }
     }
 
 
 def _score_keyword_density(resume_text: str, jd_text: str) -> Dict:
     """How well does resume keyword density match JD?"""
-    # Extract significant words (3+ chars, not stopwords)
     stopwords = {"and", "the", "for", "with", "that", "this", "will", "have", "from",
                  "are", "our", "you", "your", "not", "all", "can", "has", "its"}
     def significant_words(t):
@@ -86,12 +95,18 @@ def _score_keyword_density(resume_text: str, jd_text: str) -> Dict:
 
     score = round((len(matched) / max(len(jd_words), 1)) * 100)
     score = min(score, 100)
+    missing_sample = sorted(unmatched)[:3]
     return {
         "score":           score,
         "matched_count":   len(matched),
         "jd_total_keywords": len(jd_words),
         "top_missing":     sorted(unmatched)[:10],
         "note": f"{len(matched)} of {len(jd_words)} JD keywords found in resume.",
+        "evidence": {
+            "matched_sample": list(matched)[:3],
+            "missing_sample": missing_sample,
+            "examples": [f"Missing key JD keyword: '{k}'" for k in missing_sample] if missing_sample else ["Excellent keyword coverage"]
+        }
     }
 
 
@@ -99,7 +114,6 @@ def _score_date_consistency(text: str) -> Dict:
     dates = re.findall(DATE_PATTERN, text.lower())
     has_dates = len(dates) > 0
 
-    # Check for employment gap red flag (simple heuristic)
     year_mentions = re.findall(r"20\d{2}", text)
     years = sorted(set(int(y) for y in year_mentions))
     gap_flag = False
@@ -117,6 +131,11 @@ def _score_date_consistency(text: str) -> Dict:
         "dates_found": len(dates),
         "gap_detected": gap_flag,
         "note": "Dates look consistent." if not gap_flag else "Possible employment gap detected — consider addressing it.",
+        "evidence": {
+            "sample_dates": [f"{years[0]}-{years[-1]}"] if len(years) >= 2 else [],
+            "gap_detected": gap_flag,
+            "examples": [f"Detected timeline span: {years[0]} - {years[-1]}"] if len(years) >= 2 else ["No clear employment date ranges found"]
+        }
     }
 
 
@@ -133,6 +152,11 @@ def _score_education(text: str) -> Dict:
         "degrees_found":  found_degrees,
         "has_grad_year":  has_year,
         "note": f"Degree detected: {', '.join(found_degrees)}." if found_degrees else "No degree keyword found — ATS may not score education section.",
+        "evidence": {
+            "degrees_found": found_degrees,
+            "has_year": has_year,
+            "examples": [f"Degree term '{d.upper()}' found" for d in found_degrees] if found_degrees else ["No degree keywords detected"]
+        }
     }
 
 
@@ -156,12 +180,17 @@ def _score_formatting(text: str) -> Dict:
         "issues":        issues,
         "bullet_lines":  bullet_lines,
         "note": "No major formatting issues." if not issues else "; ".join(issues[:3]),
+        "evidence": {
+            "formatting_issues": issues,
+            "bullet_count": bullet_lines,
+            "examples": issues[:2] if issues else ["Clean layout with structured bullet points"]
+        }
     }
 
 
 def _score_length(text: str) -> Dict:
     words  = len(text.split())
-    pages  = round(words / 400, 1)   # ~400 words per resume page
+    pages  = round(words / 400, 1)
 
     if words < 200:
         score, note = 30, "Resume too short — add more detail"
@@ -181,6 +210,11 @@ def _score_length(text: str) -> Dict:
         "word_count": words,
         "estimated_pages": pages,
         "note": note,
+        "evidence": {
+            "word_count": words,
+            "estimated_pages": pages,
+            "examples": [f"Total word count: {words} words (~{pages} pages)"]
+        }
     }
 
 
@@ -195,6 +229,14 @@ def _score_quantification(text: str) -> Dict:
         for m in re.finditer(p, text.lower()):
             hits.add(m.group(0)[:40])
 
+    unquantified = []
+    for line in text.splitlines():
+        line_clean = line.strip()
+        if re.match(BULLET_PATTERN, line_clean) and not re.search(r"\d", line_clean):
+            unquantified.append(line_clean[:80])
+            if len(unquantified) >= 2:
+                break
+
     count = len(hits)
     if count == 0:
         score, note = 20, "No quantified achievements found — add numbers to every bullet"
@@ -205,11 +247,18 @@ def _score_quantification(text: str) -> Dict:
     else:
         score, note = 95, f"{count} quantified achievements — excellent"
 
+    examples = [f"Weak bullet: \"{b}...\"" for b in unquantified] if unquantified else [f"Quantified hit: \"{h}\"" for h in list(hits)[:2]]
+
     return {
         "score":   score,
         "count":   count,
         "samples": list(hits)[:6],
         "note":    note,
+        "evidence": {
+            "quantified_samples": list(hits)[:3],
+            "unquantified_examples": unquantified,
+            "examples": examples
+        }
     }
 
 

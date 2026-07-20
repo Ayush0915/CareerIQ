@@ -366,7 +366,7 @@ function HeroSection({ onStart }) {
    ROOT APP
 ──────────────────────────────────────────── */
 export default function App() {
-  const { data, loading, error, progress, run, reset } = useAnalysis()
+  const { data, loading, error, progress, run, reset, loadAnalysis } = useAnalysis()
   return (
     <div style={{ minHeight:'100vh', fontFamily:"'Inter',sans-serif" }}>
       <Header onLogoClick={reset} />
@@ -384,7 +384,7 @@ export default function App() {
             </div>
           </div>
         )}
-        {!loading && data && <ResultsDashboard data={data} onReset={reset} />}
+        {!loading && data && <ResultsDashboard data={data} onReset={reset} onSelectAnalysis={loadAnalysis} />}
         {!loading && !data && !error && <HeroSection onStart={(f,jd) => run(f,jd)} />}
       </main>
     </div>

@@ -67,11 +67,6 @@ function Header({ onLogoClick }) {
 
         {/* Nav right */}
         <div style={{ display:'flex', alignItems:'center', gap:16 }}>
-          <div style={{ display:'flex', alignItems:'center', gap:6, padding:'5px 12px', background:'#F0FDF4', border:'1px solid #BBF7D0', borderRadius:99 }}>
-            <span style={{ width:6, height:6, borderRadius:'50%', background:'#22C55E', display:'inline-block' }} />
-            <span style={{ fontSize:'0.72rem', fontWeight:600, color:'#16A34A' }}>Free · No sign-up</span>
-          </div>
-          <span style={{ fontSize:'0.75rem', color:'#9CA3AF', fontWeight:500 }}>Llama 3.3-70b</span>
           <a href="https://github.com/Ayush0915" target="_blank" rel="noreferrer"
             style={{ width:32, height:32, borderRadius:8, border:'1px solid #E8EAF0', display:'flex', alignItems:'center', justifyContent:'center', color:'#6B7280', textDecoration:'none', background:'#fff' }}>
             <Github size={14} />

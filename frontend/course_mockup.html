@@ -1,0 +1,451 @@
+<\!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CareerIQ — Course Recommendations (Design Preview)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Plus Jakarta Sans', sans-serif; background: #f8fafc; color: #0f172a; }
+
+/* ── Layout ── */
+.shell    { display: flex; gap: 24px; max-width: 1200px; margin: 0 auto; padding: 32px 24px; }
+.sidebar  { width: 290px; flex-shrink: 0; }
+.main     { flex: 1; min-width: 0; }
+
+/* ── Score card (left panel — like reference image 2) ── */
+.score-card {
+  background: #fff;
+  border: 1px solid #e8eaf0;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  margin-bottom: 16px;
+}
+.score-title { font-size: 0.8rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 12px; }
+.score-big   { font-size: 2.4rem; font-weight: 800; color: #10b981; line-height: 1; }
+.score-big span { color: #94a3b8; font-size: 1.6rem; font-weight: 600; }
+.score-sub   { font-size: 0.75rem; color: #64748b; margin-top: 4px; margin-bottom: 20px; }
+.score-divider { height: 1px; background: #f1f5f9; margin-bottom: 16px; }
+
+.category-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 0; cursor: pointer; border-bottom: 1px solid #f1f5f9;
+}
+.category-row:last-child { border-bottom: none; }
+.cat-label { font-size: 0.72rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.06em; }
+.cat-badge {
+  font-size: 0.7rem; font-weight: 700; padding: 3px 10px; border-radius: 99px;
+}
+.cat-badge.green  { background: #d1fae5; color: #059669; }
+.cat-badge.amber  { background: #fef3c7; color: #d97706; }
+.cat-badge.red    { background: #fee2e2; color: #dc2626; }
+.cat-badge.gray   { background: #f1f5f9; color: #94a3b8; }
+
+.check-row { display: flex; align-items: center; gap: 8px; padding: 7px 8px; }
+.check-icon { font-size: 0.85rem; }
+.check-label { font-size: 0.78rem; color: #334155; flex: 1; }
+.check-tag {
+  font-size: 0.65rem; font-weight: 600; padding: 2px 8px; border-radius: 99px;
+  background: #d1fae5; color: #059669;
+}
+.check-tag.issue { background: #fee2e2; color: #dc2626; }
+
+/* Skill gap mini list */
+.gap-list { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
+.gap-item {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 0.75rem; padding: 6px 10px; border-radius: 10px;
+  background: #fef3c7; border: 1px solid #fde68a; color: #92400e;
+}
+.gap-item.critical { background: #fee2e2; border-color: #fca5a5; color: #991b1b; }
+.gap-item.optional { background: #ede9fe; border-color: #c4b5fd; color: #5b21b6; }
+.gap-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.gap-dot.critical { background: #ef4444; }
+.gap-dot.important { background: #f59e0b; }
+.gap-dot.optional  { background: #8b5cf6; }
+
+/* ── Main panel ── */
+.section-header {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;
+}
+.section-title { font-size: 1.15rem; font-weight: 800; color: #0f172a; }
+.section-sub   { font-size: 0.8rem; color: #64748b; margin-top: 2px; }
+
+/* ── Tab pills ── */
+.tab-wrap {
+  display: inline-flex; gap: 2px; background: #f1f5f9; border-radius: 12px; padding: 4px; margin-bottom: 20px;
+}
+.tab {
+  padding: 7px 16px; border-radius: 9px; font-size: 0.78rem; font-weight: 600;
+  cursor: pointer; border: none; background: transparent; color: #64748b;
+  transition: all 0.18s;
+}
+.tab.active { background: #fff; color: #6366f1; box-shadow: 0 1px 6px rgba(0,0,0,0.09); }
+.tab:hover:not(.active) { color: #0f172a; }
+
+/* ── Filter bar ── */
+.filter-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+.filter-chip {
+  display: flex; align-items: center; gap: 5px;
+  padding: 5px 13px; border-radius: 99px; font-size: 0.73rem; font-weight: 600;
+  border: 1px solid #e2e8f0; background: #fff; color: #64748b; cursor: pointer;
+  transition: all 0.15s;
+}
+.filter-chip.active { background: #6366f1; color: #fff; border-color: #6366f1; }
+.filter-chip:hover:not(.active) { border-color: #6366f1; color: #6366f1; }
+.filter-dot { width: 7px; height: 7px; border-radius: 50%; }
+
+/* ── Course grid ── */
+.course-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+@media (max-width: 700px) { .course-grid { grid-template-columns: 1fr; } }
+
+/* ── Course card (inspired by image 1 / IBM SkillsBuild) ── */
+.course-card {
+  background: #fff; border: 1px solid #e8eaf0; border-radius: 18px;
+  overflow: hidden; transition: all 0.22s; cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+.course-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.1);
+  border-color: #c7d2fe;
+}
+.course-thumb {
+  height: 130px; position: relative; overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+}
+.course-thumb .thumb-icon { font-size: 2.8rem; }
+.course-platform-badge {
+  position: absolute; top: 10px; left: 10px;
+  font-size: 0.65rem; font-weight: 700; padding: 3px 9px; border-radius: 99px;
+  background: rgba(255,255,255,0.92); backdrop-filter: blur(8px);
+}
+.course-level-badge {
+  position: absolute; top: 10px; right: 10px;
+  font-size: 0.65rem; font-weight: 700; padding: 3px 9px; border-radius: 99px;
+}
+.level-beginner { background: #d1fae5; color: #059669; }
+.level-mid      { background: #fef3c7; color: #d97706; }
+.level-advanced { background: #fee2e2; color: #dc2626; }
+
+.course-body { padding: 14px 16px 16px; }
+.course-skill-tag {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 0.65rem; font-weight: 700; color: #6366f1;
+  background: #eef2ff; border: 1px solid #e0e7ff;
+  padding: 2px 8px; border-radius: 99px; margin-bottom: 8px;
+}
+.course-title { font-size: 0.88rem; font-weight: 700; color: #0f172a; line-height: 1.35; margin-bottom: 6px; }
+.course-desc  { font-size: 0.73rem; color: #64748b; line-height: 1.5; margin-bottom: 12px; }
+.course-meta  { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.course-meta-item { display: flex; align-items: center; gap: 4px; font-size: 0.7rem; color: #94a3b8; }
+.course-footer { display: flex; align-items: center; justify-content: space-between; }
+.course-free { font-size: 0.72rem; font-weight: 700; color: #10b981; background: #d1fae5; padding: 3px 10px; border-radius: 99px; }
+.course-paid { font-size: 0.72rem; font-weight: 700; color: #f59e0b; background: #fef3c7; padding: 3px 10px; border-radius: 99px; }
+.course-cta {
+  font-size: 0.73rem; font-weight: 700; color: #fff;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  padding: 6px 14px; border-radius: 8px; border: none; cursor: pointer;
+  transition: all 0.15s;
+}
+.course-cta:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(99,102,241,0.4); }
+
+/* ── Learning path banner ── */
+.path-banner {
+  background: linear-gradient(135deg, #eef2ff, #f5f3ff);
+  border: 1px solid #e0e7ff; border-radius: 18px; padding: 20px 24px;
+  display: flex; align-items: center; gap: 16px; margin-bottom: 20px;
+}
+.path-icon  { font-size: 2rem; }
+.path-title { font-size: 0.9rem; font-weight: 700; color: #3730a3; margin-bottom: 3px; }
+.path-sub   { font-size: 0.75rem; color: #6366f1; }
+.path-cta   {
+  margin-left: auto; background: #6366f1; color: #fff; font-weight: 700;
+  font-size: 0.75rem; padding: 8px 18px; border-radius: 10px; border: none;
+  cursor: pointer; white-space: nowrap;
+}
+
+/* ── Match reason strip ── */
+.match-strip {
+  display: flex; align-items: center; gap: 8px;
+  background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px;
+  padding: 7px 12px; margin-top: 8px; margin-bottom: 14px;
+  font-size: 0.72rem; color: #15803d; font-weight: 500;
+}
+
+/* ── Progress bar ── */
+.prog-track { height: 5px; background: #f1f5f9; border-radius: 99px; overflow: hidden; margin-top: 3px; }
+.prog-fill  { height: 100%; border-radius: 99px; }
+
+/* ── Header bar ── */
+.topbar {
+  background: #fff; border-bottom: 1px solid #e2e8f0;
+  padding: 0 24px; height: 60px; display: flex; align-items: center; gap: 10px;
+}
+.logo-icon { width: 32px; height: 32px; background: linear-gradient(135deg,#6366f1,#8b5cf6); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 1rem; }
+.logo-text { font-weight: 800; font-size: 1rem; color: #0f172a; }
+.logo-text span { color: #6366f1; }
+.back-btn { margin-left: auto; background: #f1f5f9; border: none; padding: 7px 14px; border-radius: 8px; font-size: 0.78rem; font-weight: 600; color: #64748b; cursor: pointer; }
+
+/* ── Preview label ── */
+.preview-label {
+  background: linear-gradient(135deg,#6366f1,#8b5cf6); color: #fff;
+  text-align: center; font-size: 0.78rem; font-weight: 700; padding: 10px;
+  letter-spacing: 0.04em;
+}
+
+/* ── Expand arrow ── */
+.expand-arrow { font-size: 0.7rem; color: #94a3b8; }
+
+.collapsed { display: none; }
+</style>
+</head>
+<body>
+
+<div class="preview-label">🎨 DESIGN PREVIEW — CareerIQ Course Recommendations Tab (Not Implemented Yet)</div>
+
+<\!-- Header -->
+<div class="topbar">
+  <div class="logo-icon">🧠</div>
+  <div class="logo-text">Career<span>IQ</span></div>
+  <span style="font-size:0.75rem;color:#64748b;margin-left:8px;">Results Dashboard</span>
+  <button class="back-btn">← Analyze Another Resume</button>
+</div>
+
+<\!-- Body -->
+<div class="shell">
+
+  <\!-- ── SIDEBAR (score card) ── -->
+  <div class="sidebar">
+
+    <\!-- Score card -->
+    <div class="score-card">
+      <div class="score-title">Your Score</div>
+      <div class="score-big">72<span>/100</span></div>
+      <div class="score-sub">14 areas to improve</div>
+      <div class="score-divider"></div>
+
+      <\!-- CONTENT -->
+      <div class="category-row">
+        <span class="cat-label">Content</span>
+        <span style="display:flex;align-items:center;gap:6px;">
+          <span class="cat-badge green">88%</span>
+          <span class="expand-arrow">∧</span>
+        </span>
+      </div>
+      <div style="padding:4px 0 8px 8px;">
+        <div class="check-row"><span class="check-icon">✅</span><span class="check-label">ATS Parse Rate</span><span class="check-tag">No issues</span></div>
+        <div class="check-row"><span class="check-icon">✅</span><span class="check-label">Quantifying Impact</span><span class="check-tag">No issues</span></div>
+        <div class="check-row"><span class="check-icon">⚠️</span><span class="check-label">Weak Phrases</span><span class="check-tag issue">3 found</span></div>
+        <div class="check-row"><span class="check-icon">✅</span><span class="check-label">Grammar</span><span class="check-tag">No issues</span></div>
+      </div>
+
+      <\!-- ATS ESSENTIALS -->
+      <div class="category-row">
+        <span class="cat-label">ATS Essentials</span>
+        <span style="display:flex;align-items:center;gap:6px;">
+          <span class="cat-badge amber">74%</span>
+          <span class="expand-arrow">∨</span>
+        </span>
+      </div>
+
+      <\!-- SKILL GAPS -->
+      <div class="category-row" style="margin-top:4px;">
+        <span class="cat-label">Skill Gaps</span>
+        <span style="display:flex;align-items:center;gap:6px;">
+          <span class="cat-badge red">6 gaps</span>
+          <span class="expand-arrow">∧</span>
+        </span>
+      </div>
+      <div style="padding:6px 0 4px 4px;">
+        <div class="gap-list">
+          <div class="gap-item critical"><span class="gap-dot critical"></span> Docker</div>
+          <div class="gap-item critical"><span class="gap-dot critical"></span> Kubernetes</div>
+          <div class="gap-item"><span class="gap-dot important"></span> GraphQL</div>
+          <div class="gap-item"><span class="gap-dot important"></span> TypeScript</div>
+          <div class="gap-item optional"><span class="gap-dot optional"></span> Redis</div>
+          <div class="gap-item optional"><span class="gap-dot optional"></span> CI/CD</div>
+        </div>
+      </div>
+
+      <\!-- COURSES CTA -->
+      <div style="margin-top:16px;padding:14px;background:#eef2ff;border:1px solid #e0e7ff;border-radius:14px;text-align:center;">
+        <div style="font-size:1.5rem;margin-bottom:6px;">🎓</div>
+        <div style="font-size:0.78rem;font-weight:700;color:#3730a3;margin-bottom:4px;">6 courses found for your gaps</div>
+        <div style="font-size:0.7rem;color:#6366f1;">Click the Courses tab to view them</div>
+      </div>
+    </div>
+
+  </div><\!-- /sidebar -->
+
+  <\!-- ── MAIN ── -->
+  <div class="main">
+
+    <\!-- Section header -->
+    <div class="section-header">
+      <div>
+        <div class="section-title">Recommended Courses</div>
+        <div class="section-sub">Curated for your 6 skill gaps · 12 courses found across 5 platforms</div>
+      </div>
+      <div style="font-size:0.75rem;color:#64748b;background:#f1f5f9;padding:6px 14px;border-radius:10px;">
+        🎯 Match basis: <strong>skill gaps from JD</strong>
+      </div>
+    </div>
+
+    <\!-- Learning Path Banner -->
+    <div class="path-banner">
+      <div class="path-icon">🗺️</div>
+      <div>
+        <div class="path-title">Suggested 30-Day Learning Path</div>
+        <div class="path-sub">Docker → Kubernetes → GraphQL → TypeScript — estimated 4–6 hrs/week</div>
+      </div>
+      <button class="path-cta">View Full Roadmap</button>
+    </div>
+
+    <\!-- Tab pills -->
+    <div class="tab-wrap">
+      <button class="tab">Overview</button>
+      <button class="tab">AI Analysis</button>
+      <button class="tab">Skills</button>
+      <button class="tab active">📚 Courses <span style="background:#6366f1;color:#fff;border-radius:99px;padding:1px 7px;font-size:0.65rem;margin-left:4px;">12</span></button>
+      <button class="tab">Jobs</button>
+      <button class="tab">AI Coach</button>
+    </div>
+
+    <\!-- Filter chips -->
+    <div class="filter-bar">
+      <span style="font-size:0.75rem;color:#64748b;font-weight:600;margin-right:4px;">Filter:</span>
+      <button class="filter-chip active">All (12)</button>
+      <button class="filter-chip"><span class="filter-dot" style="background:#ef4444"></span> Critical gaps (4)</button>
+      <button class="filter-chip"><span class="filter-dot" style="background:#f59e0b"></span> Important (5)</button>
+      <button class="filter-chip">🆓 Free only</button>
+      <button class="filter-chip">⚡ Beginner</button>
+      <button class="filter-chip">🎓 Certified</button>
+    </div>
+
+    <\!-- Match reason strip -->
+    <div class="match-strip">
+      ✅ These courses directly address the <strong>6 skill gaps</strong> found in your resume vs the job description. Completing them could raise your match score by an estimated <strong>+18 points</strong>.
+    </div>
+
+    <\!-- Course grid -->
+    <div class="course-grid">
+
+      <\!-- Card 1: Docker -->
+      <div class="course-card">
+        <div class="course-thumb" style="background:linear-gradient(135deg,#1d4ed8,#0369a1);">
+          <span class="thumb-icon">🐳</span>
+          <span class="course-platform-badge" style="color:#1d4ed8;">Docker</span>
+          <span class="course-level-badge level-beginner">Beginner</span>
+        </div>
+        <div class="course-body">
+          <div class="course-skill-tag">⚠️ Critical Gap · Docker</div>
+          <div class="course-title">Docker & Containers: Zero to Production</div>
+          <div class="course-desc">Master containerization from scratch. Build, run, and deploy Docker images. Covers Dockerfile, volumes, networking, and Docker Compose.</div>
+          <div class="course-meta">
+            <span class="course-meta-item">⏱ 6 hours</span>
+            <span class="course-meta-item">⭐ 4.8</span>
+            <span class="course-meta-item">👥 120k students</span>
+          </div>
+          <div class="prog-track"><div class="prog-fill" style="width:92%;background:linear-gradient(90deg,#6366f1,#8b5cf6);"></div></div>
+          <div style="font-size:0.65rem;color:#94a3b8;margin-top:3px;margin-bottom:12px;">92% match to your JD requirements</div>
+          <div class="course-footer">
+            <span class="course-free">Free · freeCodeCamp</span>
+            <button class="course-cta">Start Course →</button>
+          </div>
+        </div>
+      </div>
+
+      <\!-- Card 2: Kubernetes -->
+      <div class="course-card">
+        <div class="course-thumb" style="background:linear-gradient(135deg,#0f766e,#0891b2);">
+          <span class="thumb-icon">☸️</span>
+          <span class="course-platform-badge" style="color:#0f766e;">Kubernetes</span>
+          <span class="course-level-badge level-mid">Intermediate</span>
+        </div>
+        <div class="course-body">
+          <div class="course-skill-tag">⚠️ Critical Gap · Kubernetes</div>
+          <div class="course-title">Kubernetes for Developers — CKA Prep</div>
+          <div class="course-desc">Learn K8s core concepts: Pods, Deployments, Services, ConfigMaps, and Ingress. Hands-on labs using Minikube and kubeadm.</div>
+          <div class="course-meta">
+            <span class="course-meta-item">⏱ 12 hours</span>
+            <span class="course-meta-item">⭐ 4.7</span>
+            <span class="course-meta-item">👥 85k students</span>
+          </div>
+          <div class="prog-track"><div class="prog-fill" style="width:87%;background:linear-gradient(90deg,#0891b2,#0f766e);"></div></div>
+          <div style="font-size:0.65rem;color:#94a3b8;margin-top:3px;margin-bottom:12px;">87% match to your JD requirements</div>
+          <div class="course-footer">
+            <span class="course-paid">$14.99 · Udemy</span>
+            <button class="course-cta">Start Course →</button>
+          </div>
+        </div>
+      </div>
+
+      <\!-- Card 3: TypeScript -->
+      <div class="course-card">
+        <div class="course-thumb" style="background:linear-gradient(135deg,#1d4ed8,#4338ca);">
+          <span class="thumb-icon">📘</span>
+          <span class="course-platform-badge" style="color:#1d4ed8;">TypeScript</span>
+          <span class="course-level-badge level-beginner">Beginner</span>
+        </div>
+        <div class="course-body">
+          <div class="course-skill-tag">🔶 Important Gap · TypeScript</div>
+          <div class="course-title">TypeScript: The Complete Developer's Guide</div>
+          <div class="course-desc">From JS to TS — types, interfaces, generics, decorators, and full React + Node integration. Build real projects.</div>
+          <div class="course-meta">
+            <span class="course-meta-item">⏱ 9 hours</span>
+            <span class="course-meta-item">⭐ 4.9</span>
+            <span class="course-meta-item">👥 200k students</span>
+          </div>
+          <div class="prog-track"><div class="prog-fill" style="width:83%;background:linear-gradient(90deg,#6366f1,#4338ca);"></div></div>
+          <div style="font-size:0.65rem;color:#94a3b8;margin-top:3px;margin-bottom:12px;">83% match to your JD requirements</div>
+          <div class="course-footer">
+            <span class="course-free">Free · Official Docs + Exercises</span>
+            <button class="course-cta">Start Course →</button>
+          </div>
+        </div>
+      </div>
+
+      <\!-- Card 4: GraphQL -->
+      <div class="course-card">
+        <div class="course-thumb" style="background:linear-gradient(135deg,#7c3aed,#db2777);">
+          <span class="thumb-icon">⚡</span>
+          <span class="course-platform-badge" style="color:#7c3aed;">GraphQL</span>
+          <span class="course-level-badge level-mid">Intermediate</span>
+        </div>
+        <div class="course-body">
+          <div class="course-skill-tag">🔶 Important Gap · GraphQL</div>
+          <div class="course-title">GraphQL with React & Apollo — Full Stack</div>
+          <div class="course-desc">Build APIs with GraphQL schemas, resolvers, and Apollo Client. Replace REST with type-safe queries and mutations.</div>
+          <div class="course-meta">
+            <span class="course-meta-item">⏱ 8 hours</span>
+            <span class="course-meta-item">⭐ 4.6</span>
+            <span class="course-meta-item">👥 54k students</span>
+          </div>
+          <div class="prog-track"><div class="prog-fill" style="width:79%;background:linear-gradient(90deg,#7c3aed,#db2777);"></div></div>
+          <div style="font-size:0.65rem;color:#94a3b8;margin-top:3px;margin-bottom:12px;">79% match to your JD requirements</div>
+          <div class="course-footer">
+            <span class="course-paid">$12.99 · Udemy</span>
+            <button class="course-cta">Start Course →</button>
+          </div>
+        </div>
+      </div>
+
+    </div><\!-- /course-grid -->
+
+    <\!-- "See more" row -->
+    <div style="text-align:center;margin-top:20px;">
+      <button style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:10px;padding:10px 28px;font-size:0.8rem;font-weight:600;color:#64748b;cursor:pointer;">
+        Show 8 more courses ↓
+      </button>
+      <div style="font-size:0.7rem;color:#94a3b8;margin-top:8px;">Sourced from Coursera, Udemy, freeCodeCamp, YouTube, official docs</div>
+    </div>
+
+  </div><\!-- /main -->
+</div><\!-- /shell -->
+
+</body>
+</html>

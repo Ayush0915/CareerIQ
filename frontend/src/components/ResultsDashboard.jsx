@@ -321,6 +321,8 @@ function SkillsTab({ data }) {
         {(signal_noise?.strong_verbs_found?.length ?? 0) > 0 && (
           <div>
             <p style={{ fontSize:'0.68rem', fontWeight:700, color:'#22C55E', textTransform:'uppercase', letterSpacing:'0.07em', marginBottom:6 }}>Strong Action Verbs</p>
+            <div style={{ display:'flex', flexWrap:'wrap', gap:5 }}>{signal_noise.strong_verbs_found.map(v => <SkillBadge key={v} skill={v} variant="match" />)}</div>
+          </div>
         )}
       </div>
     </div>

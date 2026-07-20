@@ -1,9 +1,15 @@
-from sentence_transformers import SentenceTransformer
+from fastembed import TextEmbedding
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 import re
 
-model = SentenceTransformer("all-MiniLM-L6-v2")
+_model = None
+
+def get_model():
+    global _model
+    if _model is None:
+        _model = TextEmbedding(model_name="BAAI/bge-small-en-v1.5")
+    return _model
 
 
 def simple_sentence_split(text: str):
@@ -37,8 +43,9 @@ def calculate_similarity(resume_text: str, jd_text: str, top_k: int = 5):
     if not filtered_sentences:
         filtered_sentences = sentences
 
-    jd_embedding = model.encode([jd_text])
-    sentence_embeddings = model.encode(filtered_sentences)
+    model = get_model()
+    jd_embedding = list(model.embed([jd_text]))
+    sentence_embeddings = list(model.embed(filtered_sentences))
 
     similarities = cosine_similarity(sentence_embeddings, jd_embedding).flatten()
 

@@ -231,7 +231,7 @@ Fetches real-time matching jobs.
    - **Root Directory**: `backend`
    - **Environment**: `Python 3`
    - **Build Command**: `pip install -r requirements.txt`
-   - **Start Command**: `uvicorn main:app --host 0.0.0.0 --port $PORT`
+   - **Start Command**: `uvicorn main:app --host 0.0.0.0 --port $PORT --workers 1`
 5. Add Environment Variables:
    - `GROQ_API_KEY`: `your_key`
    - `RAPIDAPI_KEY`: `your_key`

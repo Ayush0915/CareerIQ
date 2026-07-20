@@ -94,7 +94,6 @@ async def analyze_resume(
         if len(jd) > MAX_JD_LENGTH:
             jd = jd[:MAX_JD_LENGTH]
 
-    try:
         # ── Parse resume ──────────────────────────────────────────────────────
         try:
             parse_result  = parse_resume(tmp_path)

@@ -1,3 +1,4 @@
+import hashlib
 import os
 import json
 import time
@@ -11,6 +12,36 @@ PRIMARY_MODEL   = "llama-3.3-70b-versatile"
 FALLBACK_MODEL  = "llama-3.1-8b-instant"
 MAX_RETRIES     = 3
 RETRY_DELAY     = 1.5   # seconds
+
+CACHE_TTL       = 600   # 10 minutes TTL in seconds
+_eval_cache     = {}    # cache_key -> (timestamp, result_dict)
+
+
+def _get_cache_key(resume_text: str, job_description: str) -> str:
+    content = f"{resume_text.strip()}|||{job_description.strip()}".encode("utf-8")
+    return hashlib.sha256(content).hexdigest()
+
+
+def _get_cached_evaluation(key: str) -> dict:
+    now = time.time()
+    if key in _eval_cache:
+        ts, result = _eval_cache[key]
+        if now - ts < CACHE_TTL:
+            return result
+        else:
+            del _eval_cache[key]
+    return None
+
+
+def _set_cached_evaluation(key: str, result: dict):
+    now = time.time()
+    if len(_eval_cache) > 200:
+        expired = [k for k, (ts, _) in _eval_cache.items() if now - ts >= CACHE_TTL]
+        for k in expired:
+            del _eval_cache[k]
+        if len(_eval_cache) > 200:
+            _eval_cache.clear()
+    _eval_cache[key] = (now, result)
 
 
 def _call_llm(prompt: str, max_tokens: int = 1500, model: str = None) -> str:
@@ -65,9 +96,14 @@ def _sanitize_for_prompt(text: str) -> str:
 
 def llm_master_evaluate(resume_text: str, job_description: str) -> dict:
     """
-    Full resume vs JD evaluation.
+    Full resume vs JD evaluation with 10-minute in-memory TTL caching.
     Sends up to 3500 chars of resume + 1200 chars of JD for thorough analysis.
     """
+    cache_key = _get_cache_key(resume_text, job_description)
+    cached_result = _get_cached_evaluation(cache_key)
+    if cached_result is not None:
+        return cached_result
+
     resume_excerpt = _sanitize_for_prompt(resume_text[:3500])
     jd_excerpt     = job_description[:1200]
 
@@ -149,6 +185,7 @@ Return ONLY a single valid JSON object — no prose, no markdown fences. Use thi
     result.setdefault("competition_level",   "medium")
     result.setdefault("fit_verdict",         "good_fit")
 
+    _set_cached_evaluation(cache_key, result)
     return result
 
 

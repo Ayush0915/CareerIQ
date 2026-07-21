@@ -196,3 +196,169 @@ Write a LinkedIn About section (summary). Rules:
 - Do NOT start with "I am a..." or list your job title as the first thing"""
 
     return _call(prompt, max_tokens=400)
+
+
+def _fallback_course_recommendations(skill_gap_analysis: dict) -> list:
+    """Fallback generator for course recommendations when LLM output is unavailable or unparseable."""
+    critical  = skill_gap_analysis.get("critical", [])  or []
+    important = skill_gap_analysis.get("important", []) or []
+    optional  = skill_gap_analysis.get("optional", [])  or []
+
+    COLOR_PALETTES = [
+        ["#3b82f6", "#1d4ed8"],
+        ["#059669", "#047857"],
+        ["#7c3aed", "#6d28d9"],
+        ["#f59e0b", "#d97706"],
+        ["#0891b2", "#0e7490"],
+        ["#dc2626", "#b91c1c"]
+    ]
+    EMOJIS = ["🐍", "🐳", "⚡", "☁️", "⚛️", "🗄️", "🧠", "🔄", "🦜", "🎓"]
+
+    res = []
+    idx = 1
+    for prio, skills in [("critical", critical), ("important", important), ("optional", optional)]:
+        for s in skills:
+            skill_clean = s.strip().lower()
+            c_color = COLOR_PALETTES[(idx - 1) % len(COLOR_PALETTES)]
+            c_emoji = EMOJIS[(idx - 1) % len(EMOJIS)]
+
+            # Course 1: Comprehensive Course
+            res.append({
+                "id": f"rec_{idx}_1",
+                "skill": skill_clean,
+                "title": f"Complete {s.capitalize()} Masterclass: Zero to Production",
+                "platform": "Coursera",
+                "provider": "University & Industry Experts",
+                "level": "intermediate",
+                "hours": 20,
+                "rating": 4.8,
+                "students": "150k+",
+                "free": True,
+                "price": "",
+                "cert": True,
+                "url": f"https://www.coursera.org/search?query={skill_clean}",
+                "emoji": c_emoji,
+                "color": c_color,
+                "desc": f"Master {s} through hands-on projects and practical coding exercises designed to meet job requirements.",
+                "priority": prio,
+                "mScore": 92 if prio == "critical" else 85
+            })
+
+            # Course 2: Practical Bootcamp / Tutorial
+            res.append({
+                "id": f"rec_{idx}_2",
+                "skill": skill_clean,
+                "title": f"{s.capitalize()} Crash Course for Developers",
+                "platform": "freeCodeCamp",
+                "provider": "freeCodeCamp",
+                "level": "beginner",
+                "hours": 6,
+                "rating": 4.9,
+                "students": "500k+ views",
+                "free": True,
+                "price": "",
+                "cert": False,
+                "url": f"https://www.youtube.com/results?search_query=freecodecamp+{skill_clean}",
+                "emoji": c_emoji,
+                "color": c_color,
+                "desc": f"Fast-track your {s} knowledge with real-world project tutorials and key concept breakdowns.",
+                "priority": prio,
+                "mScore": 88 if prio == "critical" else 80
+            })
+            idx += 1
+            if idx > 8:
+                break
+    return res
+
+
+def generate_course_recommendations(
+    skill_gap_analysis: dict,
+    job_description: str = "",
+    resume_text: str = ""
+) -> list:
+    """
+    Generate 2-3 personalized learning resource suggestions per critical/important skill gap
+    based on the candidate's resume and job description using LLM.
+    """
+    if not isinstance(skill_gap_analysis, dict):
+        skill_gap_analysis = {}
+
+    critical  = skill_gap_analysis.get("critical", [])  or []
+    important = skill_gap_analysis.get("important", []) or []
+    optional  = skill_gap_analysis.get("optional", [])  or []
+
+    all_gaps = critical + important
+    if not all_gaps and optional:
+        all_gaps = optional[:3]
+
+    if not all_gaps:
+        return []
+
+    skills_context = []
+    for s in critical[:5]:
+        skills_context.append(f"- {s} (Priority: Critical Gap)")
+    for s in important[:5]:
+        skills_context.append(f"- {s} (Priority: Important Gap)")
+    if not (critical or important):
+        for s in optional[:3]:
+            skills_context.append(f"- {s} (Priority: Optional Gap)")
+
+    prompt = f"""You are an elite software engineering career mentor and technical curriculum director.
+
+TARGET JOB DESCRIPTION:
+{job_description[:800] if job_description else "Software engineering / technology role"}
+
+CANDIDATE RESUME SUMMARY:
+{resume_text[:800] if resume_text else "Technical candidate seeking to upskill"}
+
+CANDIDATE'S SKILL GAPS TO ADDRESS:
+{chr(10).join(skills_context)}
+
+For EACH skill gap listed above, generate 2-3 specific, high-quality, personalized learning resource recommendations (e.g. top courses on Coursera, Udemy, freeCodeCamp, YouTube masterclasses, or official documentation tutorials).
+Base your recommendations and descriptions on the candidate's background and target role requirements.
+
+Return ONLY a valid JSON array of course objects — no markdown fences, no extra text.
+Each course object MUST follow this structure:
+[
+  {{
+    "id": "c_1",
+    "skill": "<skill_name_lowercase>",
+    "title": "<Specific Course or Tutorial Title>",
+    "platform": "<Coursera | Udemy | freeCodeCamp | YouTube | DeepLearning.AI | Official Docs>",
+    "provider": "<Instructor, University, or Publisher name>",
+    "level": "<beginner | intermediate | advanced>",
+    "hours": <estimated_hours_integer>,
+    "rating": <rating_float_e.g._4.8>,
+    "students": "<e.g._150k+>",
+    "free": <boolean_true_or_false>,
+    "price": "<e.g._'$14.99'_or_''>",
+    "cert": <boolean_true_or_false>,
+    "url": "<search_or_course_link>",
+    "emoji": "<single_relevant_emoji>",
+    "color": ["#3b82f6", "#1d4ed8"],
+    "desc": "<2 sentence personalized explanation of why this resource bridges this candidate's gap for the target job>",
+    "priority": "<critical | important | optional>",
+    "mScore": <match_relevance_integer_75_to_98>
+  }}
+]
+"""
+
+    raw = _call(prompt, max_tokens=1500)
+    import json, re
+
+    raw = raw.strip()
+    raw = re.sub(r"^```(?:json)?\s*", "", raw)
+    raw = re.sub(r"\s*```$", "", raw)
+    match = re.search(r"\[.*\]", raw, re.DOTALL)
+    if match:
+        raw = match.group(0)
+
+    try:
+        parsed = json.loads(raw)
+        if isinstance(parsed, list) and len(parsed) > 0:
+            return parsed
+    except Exception:
+        pass
+
+    return _fallback_course_recommendations(skill_gap_analysis)
+

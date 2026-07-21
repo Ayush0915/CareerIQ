@@ -4,6 +4,9 @@ import {
   User, List, Search, Calendar, GraduationCap,
   LayoutTemplate, AlignLeft, TrendingUp, ChevronDown, ChevronUp
 } from 'lucide-react'
+import Card from './ui/Card'
+import Badge from './ui/Badge'
+import ScoreBar from './ui/ScoreBar'
 
 const CHECK_META = {
   contact_info:     { label:'Contact Info',       icon:User,           weight:'8%'  },
@@ -58,9 +61,7 @@ function CheckRow({ checkKey, data }) {
   if (data.samples?.length)         details.push(`Examples: ${data.samples.slice(0,3).join(' · ')}`)
 
   return (
-    <div
-      style={{ borderBottom:'1px solid #F0F1F5', overflow:'hidden' }}
-    >
+    <div style={{ borderBottom:'1px solid #F0F1F5', overflow:'hidden' }}>
       <button
         onClick={() => setOpen(!open)}
         style={{ width:'100%', display:'flex', alignItems:'center', gap:12, padding:'13px 18px', background:'none', border:'none', cursor:'pointer', textAlign:'left' }}
@@ -74,16 +75,13 @@ function CheckRow({ checkKey, data }) {
 
         {/* Label + bar */}
         <div style={{ flex:1, minWidth:0 }}>
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:5 }}>
-            <span style={{ fontSize:'0.82rem', fontWeight:600, color:'#1A1D2E' }}>{meta.label}</span>
-            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-              <span style={{ fontSize:'0.65rem', color:'#9CA3AF', fontWeight:500 }}>weight {meta.weight}</span>
-              <span style={{ fontSize:'0.75rem', fontWeight:700, color:ss.color }}>{data.score}%</span>
-            </div>
-          </div>
-          <div className="ev-progress-track" style={{ height:5 }}>
-            <div style={{ height:'100%', borderRadius:99, width:`${data.score}%`, background:ss.barColor, transition:'width 1s cubic-bezier(0.16,1,0.3,1)' }} />
-          </div>
+          <ScoreBar
+            label={meta.label}
+            value={data.score}
+            color={ss.barColor}
+            height={5}
+            className="mb-0"
+          />
         </div>
 
         {/* Chevron */}
@@ -127,10 +125,10 @@ function CheckRow({ checkKey, data }) {
 
 export default function ATSBreakdown({ atsData }) {
   if (!atsData) return (
-    <div className="ev-card" style={{ padding:40, textAlign:'center' }}>
+    <Card padding={40} className="text-center">
       <ShieldAlert size={32} color="#E8EAF0" style={{ margin:'0 auto 12px', display:'block' }} />
       <p style={{ color:'#9CA3AF', fontSize:'0.875rem' }}>ATS simulation data not available.</p>
-    </div>
+    </Card>
   )
 
   const { overall_ats_score, checks, top_issues, verdict } = atsData
@@ -145,7 +143,7 @@ export default function ATSBreakdown({ atsData }) {
     <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
 
       {/* Hero score card */}
-      <div className="ev-card" style={{ padding:22 }}>
+      <Card padding={22}>
         <div style={{ display:'flex', alignItems:'center', gap:20 }}>
           {/* Big score */}
           <div style={{ textAlign:'center', flexShrink:0 }}>
@@ -166,9 +164,9 @@ export default function ATSBreakdown({ atsData }) {
             <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
               <VIcon size={16} color={vs.color} />
               <span style={{ fontWeight:700, fontSize:'1rem', color:'#1A1D2E' }}>ATS Simulation</span>
-              <span style={{ fontSize:'0.72rem', fontWeight:700, padding:'3px 10px', borderRadius:99, background:vs.bg, border:`1px solid ${vs.border}`, color:vs.color }}>
+              <Badge bg={vs.bg} border={vs.border} color={vs.color} style={{ fontSize:'0.72rem', fontWeight:700 }}>
                 {verdict}
-              </span>
+              </Badge>
             </div>
 
             <div style={{ display:'flex', gap:16, marginBottom:12 }}>
@@ -177,9 +175,7 @@ export default function ATSBreakdown({ atsData }) {
               <span style={{ fontSize:'0.75rem', color:'#DC2626', fontWeight:600 }}>✗ {failCount} failed</span>
             </div>
 
-            <div className="ev-progress-track">
-              <div className="ev-progress-fill" style={{ width:`${overall_ats_score}%`, background:`linear-gradient(90deg, ${vs.color}, ${vs.barColor || vs.color})` }} />
-            </div>
+            <ScoreBar value={overall_ats_score} gradient={`linear-gradient(90deg, ${vs.color}, ${vs.barColor || vs.color})`} showPercent={false} className="mb-0" />
           </div>
         </div>
 
@@ -196,10 +192,10 @@ export default function ATSBreakdown({ atsData }) {
             </ul>
           </div>
         )}
-      </div>
+      </Card>
 
       {/* 8 Check rows */}
-      <div className="ev-card" style={{ padding:0, overflow:'hidden' }}>
+      <Card padding={0} style={{ overflow:'hidden' }}>
         <div style={{ padding:'14px 18px', borderBottom:'1px solid #F0F1F5', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
           <span style={{ fontWeight:700, fontSize:'0.875rem', color:'#1A1D2E' }}>8-Point ATS Checklist</span>
           <span style={{ fontSize:'0.68rem', color:'#9CA3AF' }}>Click any row to expand</span>
@@ -207,7 +203,7 @@ export default function ATSBreakdown({ atsData }) {
         {Object.entries(checks).map(([key, data]) => (
           <CheckRow key={key} checkKey={key} data={data} />
         ))}
-      </div>
+      </Card>
     </div>
   )
 }

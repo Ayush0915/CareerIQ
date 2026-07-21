@@ -8,6 +8,9 @@ import UploadSection from './components/UploadSection'
 import ResultsDashboard from './components/ResultsDashboard'
 import LoadingScreen from './components/LoadingScreen'
 import { useAnalysis } from './hooks/useAnalysis'
+import Card from './components/ui/Card'
+import Badge from './components/ui/Badge'
+import ScoreBar from './components/ui/ScoreBar'
 
 /* ────────────────────────────────────────────
    LOGO MARK  (inline SVG — clean, modern)
@@ -17,7 +20,7 @@ function LogoMark({ size = 36 }) {
     <svg width={size} height={size} viewBox="0 0 36 36" fill="none">
       <rect width="36" height="36" rx="10" fill="url(#lg)" />
       <text x="18" y="24" textAnchor="middle" fill="#fff"
-        style={{ fontFamily:'Inter,sans-serif', fontWeight:800, fontSize:15, letterSpacing:'-0.5px' }}>
+        className="font-sans font-extrabold text-[15px] tracking-[-0.5px]">
         IQ
       </text>
       <defs>
@@ -42,33 +45,26 @@ function Header({ onLogoClick }) {
   }, [])
 
   return (
-    <header style={{
-      position:'fixed', top:0, left:0, right:0, zIndex:50, height:62,
-      background:'rgba(255,255,255,0.96)',
-      borderBottom: scrolled ? '1px solid #E8EAF0' : '1px solid transparent',
-      backdropFilter:'blur(16px)',
-      boxShadow: scrolled ? '0 1px 12px rgba(0,0,0,0.06)' : 'none',
-      transition:'all 0.25s',
-    }}>
-      <div style={{ maxWidth:1160, margin:'0 auto', padding:'0 28px', height:'100%', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+    <header className={`fixed top-0 left-0 right-0 z-50 h-[62px] bg-white/96 backdrop-blur-[16px] transition-all duration-250 ${
+      scrolled ? 'border-b border-border shadow-[0_1px_12px_rgba(0,0,0,0.06)]' : 'border-b border-transparent shadow-none'
+    }`}>
+      <div className="max-w-[1160px] mx-auto px-7 h-full flex items-center justify-between">
 
         {/* Logo */}
-        <button onClick={onLogoClick} style={{ display:'flex', alignItems:'center', gap:10, border:'none', background:'transparent', cursor:'pointer', padding:0 }}>
+        <button onClick={onLogoClick} className="flex items-center gap-2.5 border-none bg-transparent cursor-pointer p-0">
           <LogoMark size={36} />
-          <span style={{ fontWeight:800, fontSize:'1.05rem', color:'#1A1D2E', letterSpacing:'-0.02em' }}>
-            Career<span style={{ color:'#5147E5' }}>IQ</span>
+          <span className="font-extrabold text-[1.05rem] text-navy tracking-[-0.02em]">
+            Career<span className="text-accent">IQ</span>
           </span>
-          <span style={{
-            fontSize:'0.6rem', fontWeight:700, color:'#5147E5',
-            background:'#EEF0FE', border:'1px solid #D8DCFC',
-            borderRadius:99, padding:'2px 8px', marginLeft:2, letterSpacing:'0.04em'
-          }}>BETA</span>
+          <Badge variant="accent" className="ml-0.5 tracking-[0.04em]">
+            BETA
+          </Badge>
         </button>
 
         {/* Nav right */}
-        <div style={{ display:'flex', alignItems:'center', gap:16 }}>
+        <div className="flex items-center gap-4">
           <a href="https://github.com/Ayush0915" target="_blank" rel="noreferrer"
-            style={{ width:32, height:32, borderRadius:8, border:'1px solid #E8EAF0', display:'flex', alignItems:'center', justifyContent:'center', color:'#6B7280', textDecoration:'none', background:'#fff' }}>
+            className="w-8 h-8 rounded-lg border border-border flex items-center justify-center text-muted no-underline bg-white">
             <Github size={14} />
           </a>
         </div>
@@ -82,20 +78,19 @@ function Header({ onLogoClick }) {
 ──────────────────────────────────────────── */
 function StatBadge({ icon:Icon, value, label, color, style }) {
   return (
-    <div style={{
-      display:'flex', alignItems:'center', gap:10,
-      background:'#fff', borderRadius:14,
-      padding:'10px 14px',
-      boxShadow:'0 8px 24px rgba(0,0,0,0.10)',
-      border:'1px solid #F0F1F5',
-      ...style,
-    }}>
-      <div style={{ width:32, height:32, borderRadius:9, background: color + '18', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+    <div
+      className="flex items-center gap-2.5 bg-white rounded-[14px] px-3.5 py-2.5 shadow-[0_8px_24px_rgba(0,0,0,0.10)] border border-[#F0F1F5]"
+      style={style}
+    >
+      <div
+        className="w-8 h-8 rounded-[9px] flex items-center justify-center shrink-0"
+        style={{ background: color + '18' }}
+      >
         <Icon size={15} color={color} />
       </div>
       <div>
-        <div style={{ fontSize:'0.85rem', fontWeight:800, color:'#1A1D2E', lineHeight:1.1 }}>{value}</div>
-        <div style={{ fontSize:'0.65rem', color:'#9CA3AF', fontWeight:500, marginTop:1 }}>{label}</div>
+        <div className="text-[0.85rem] font-extrabold text-navy leading-tight">{value}</div>
+        <div className="text-[0.65rem] text-subtle font-medium mt-0.5">{label}</div>
       </div>
     </div>
   )
@@ -115,68 +110,65 @@ function ResultMockup() {
   ]
 
   return (
-    <div style={{ position:'relative', height:480 }}>
+    <div className="relative h-[480px]">
       {/* Main card */}
-      <div style={{
-        position:'absolute', top:0, left:0, right:0,
-        background:'#fff', borderRadius:20,
-        boxShadow:'0 20px 60px rgba(81,71,229,0.15)',
-        border:'1px solid #E8EAF0',
-        overflow:'hidden',
-      }}>
+      <Card className="absolute top-0 left-0 right-0 p-0 overflow-hidden shadow-[0_20px_60px_rgba(81,71,229,0.15)]">
         {/* Card header */}
-        <div style={{ background:'linear-gradient(135deg,#5147E5 0%,#8B7CF6 100%)', padding:'16px 20px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-            <Brain size={16} color="rgba(255,255,255,0.9)" />
-            <span style={{ fontSize:'0.8rem', fontWeight:700, color:'#fff' }}>Analysis Complete</span>
+        <div className="bg-gradient-to-r from-accent to-[#8B7CF6] px-5 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Brain size={16} className="text-white/90" />
+            <span className="text-[0.8rem] font-bold text-white">Analysis Complete</span>
           </div>
-          <div style={{ display:'flex', alignItems:'center', gap:6, background:'rgba(255,255,255,0.2)', borderRadius:99, padding:'3px 10px' }}>
-            <span style={{ fontSize:'0.65rem', fontWeight:700, color:'#fff' }}>6.2s</span>
+          <div className="flex items-center gap-1.5 bg-white/20 rounded-full px-2.5 py-0.5">
+            <span className="text-[0.65rem] font-bold text-white">6.2s</span>
           </div>
         </div>
 
         {/* Score row */}
-        <div style={{ padding:'18px 20px', display:'flex', alignItems:'center', gap:16, borderBottom:'1px solid #F0F1F5' }}>
-          <div style={{ textAlign:'center' }}>
-            <div style={{ fontSize:'2.8rem', fontWeight:800, color:'#22C55E', lineHeight:1, fontVariantNumeric:'tabular-nums' }}>82</div>
-            <div style={{ fontSize:'0.62rem', color:'#9CA3AF', marginTop:2 }}>Overall Score</div>
+        <div className="px-5 py-[18px] flex items-center gap-4 border-b border-[#F0F1F5]">
+          <div className="text-center">
+            <div className="text-[2.8rem] font-extrabold text-success leading-none tabular-nums">82</div>
+            <div className="text-[0.62rem] text-subtle mt-0.5">Overall Score</div>
           </div>
-          <div style={{ flex:1 }}>
+          <div className="flex-1">
             {bars.map((b, i) => (
-              <div key={i} style={{ marginBottom: i < bars.length-1 ? 8 : 0 }}>
-                <div style={{ display:'flex', justifyContent:'space-between', marginBottom:3 }}>
-                  <span style={{ fontSize:'0.65rem', color:'#9CA3AF', fontWeight:500 }}>{b.label}</span>
-                  <span style={{ fontSize:'0.65rem', fontWeight:700, color:b.color }}>{b.pct}%</span>
-                </div>
-                <div style={{ height:4, background:'#F0F1F5', borderRadius:99 }}>
-                  <div style={{ height:'100%', width:`${b.pct}%`, background:b.color, borderRadius:99 }} />
-                </div>
-              </div>
+              <ScoreBar
+                key={i}
+                label={b.label}
+                value={b.pct}
+                color={b.color}
+                height={4}
+                className={i < bars.length - 1 ? 'mb-2' : 'mb-0'}
+              />
             ))}
           </div>
         </div>
 
         {/* Skills row */}
-        <div style={{ padding:'14px 20px', borderBottom:'1px solid #F0F1F5' }}>
-          <div style={{ fontSize:'0.65rem', fontWeight:700, color:'#9CA3AF', textTransform:'uppercase', letterSpacing:'0.07em', marginBottom:8 }}>Matching Skills</div>
-          <div style={{ display:'flex', flexWrap:'wrap', gap:5 }}>
+        <div className="px-5 py-3.5 border-b border-[#F0F1F5]">
+          <div className="text-[0.65rem] font-bold text-subtle uppercase tracking-[0.07em] mb-2">Matching Skills</div>
+          <div className="flex flex-wrap gap-1.25">
             {skills.map(s => (
-              <span key={s} style={{ fontSize:'0.68rem', fontWeight:600, padding:'3px 9px', borderRadius:99, background:'#F0FDF4', border:'1px solid #BBF7D0', color:'#16A34A' }}>{s}</span>
+              <Badge variant="match" key={s}>
+                {s}
+              </Badge>
             ))}
           </div>
         </div>
 
         {/* Gaps row */}
-        <div style={{ padding:'14px 20px' }}>
-          <div style={{ fontSize:'0.65rem', fontWeight:700, color:'#9CA3AF', textTransform:'uppercase', letterSpacing:'0.07em', marginBottom:8 }}>Critical Gaps</div>
-          <div style={{ display:'flex', gap:5 }}>
+        <div className="px-5 py-3.5">
+          <div className="text-[0.65rem] font-bold text-subtle uppercase tracking-[0.07em] mb-2">Critical Gaps</div>
+          <div className="flex gap-1.25">
             {missing.map(s => (
-              <span key={s} style={{ fontSize:'0.68rem', fontWeight:600, padding:'3px 9px', borderRadius:99, background:'#FEF2F2', border:'1px solid #FECACA', color:'#DC2626' }}>{s}</span>
+              <Badge variant="critical" key={s}>
+                {s}
+              </Badge>
             ))}
-            <span style={{ fontSize:'0.68rem', color:'#9CA3AF', alignSelf:'center' }}>+ 3 more</span>
+            <span className="text-[0.68rem] text-subtle self-center">+ 3 more</span>
           </div>
         </div>
-      </div>
+      </Card>
 
       {/* Floating stat badges */}
       <StatBadge
@@ -198,82 +190,51 @@ function ResultMockup() {
 ──────────────────────────────────────────── */
 function HeroSection({ onStart }) {
   return (
-    <div style={{
-      background:'#F5F6FA',
-      paddingTop:62,
-      position:'relative',
-      overflow:'hidden',
-      minHeight:'100vh',
-    }}>
+    <div className="bg-bg pt-[62px] relative overflow-hidden min-h-screen">
 
       {/* Subtle dot-grid background */}
-      <div style={{
-        position:'absolute', inset:0, pointerEvents:'none',
-        backgroundImage:'radial-gradient(circle, #D8DCFC 1px, transparent 1px)',
-        backgroundSize:'28px 28px',
-        opacity:0.5,
-      }} />
+      <div className="absolute inset-0 pointer-events-none opacity-50 bg-[radial-gradient(circle,#D8DCFC_1px,transparent_1px)] bg-[size:28px_28px]" />
 
       {/* Gradient blob top-right */}
-      <div style={{
-        position:'absolute', top:-160, right:-160, width:520, height:520,
-        borderRadius:'50%',
-        background:'radial-gradient(circle, rgba(81,71,229,0.10) 0%, transparent 65%)',
-        pointerEvents:'none',
-      }} />
-      <div style={{
-        position:'absolute', bottom:-100, left:-80, width:420, height:420,
-        borderRadius:'50%',
-        background:'radial-gradient(circle, rgba(139,124,246,0.07) 0%, transparent 65%)',
-        pointerEvents:'none',
-      }} />
+      <div className="absolute -top-[160px] -right-[160px] w-[520px] h-[520px] rounded-full bg-[radial-gradient(circle,rgba(81,71,229,0.10)_0%,transparent_65%)] pointer-events-none" />
+      <div className="absolute -bottom-[100px] -left-[80px] w-[420px] h-[420px] rounded-full bg-[radial-gradient(circle,rgba(139,124,246,0.07)_0%,transparent_65%)] pointer-events-none" />
 
-      <div style={{ maxWidth:1160, margin:'0 auto', padding:'56px 28px 64px', position:'relative' }}>
+      <div className="max-w-[1160px] mx-auto px-7 pt-14 pb-16 relative">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-16 items-center">
 
           {/* ── LEFT COLUMN ── */}
           <div className="animate-fade-up">
 
             {/* Eyebrow */}
-            <div style={{ display:'inline-flex', alignItems:'center', gap:8, background:'#EEF0FE', border:'1px solid #D8DCFC', borderRadius:99, padding:'6px 16px', marginBottom:24 }}>
-              <span style={{ width:7, height:7, borderRadius:'50%', background:'#5147E5', display:'inline-block', animation:'skeleton 1.8s ease-in-out infinite' }} />
-              <span style={{ fontSize:'0.72rem', fontWeight:700, color:'#5147E5', letterSpacing:'0.02em' }}>Free AI Resume Analyzer — No Sign-up</span>
+            <div className="inline-flex items-center gap-2 bg-accent-light border border-accent-mid rounded-full px-4 py-1.5 mb-6">
+              <span className="w-1.75 h-1.75 rounded-full bg-accent inline-block animate-skeleton" />
+              <span className="text-[0.72rem] font-bold text-accent tracking-[0.02em]">Free AI Resume Analyzer — No Sign-up</span>
             </div>
 
             {/* Headline */}
-            <h1 style={{
-              fontSize:'3.4rem', fontWeight:800, color:'#1A1D2E',
-              lineHeight:1.08, letterSpacing:'-0.03em',
-              marginBottom:18,
-            }}>
+            <h1 className="text-[3.4rem] font-extrabold text-navy leading-[1.08] tracking-[-0.03em] mb-4.5">
               Land more interviews<br />
-              with <span style={{
-                background:'linear-gradient(135deg,#5147E5,#8B7CF6)',
-                WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent',
-                backgroundClip:'text',
-              }}>AI-powered</span><br />
+              with <span className="bg-gradient-to-r from-accent to-[#8B7CF6] bg-clip-text text-transparent">AI-powered</span><br />
               resume analysis
             </h1>
 
             {/* Subheadline */}
-            <p style={{ fontSize:'1.05rem', color:'#6B7280', lineHeight:1.7, marginBottom:32, maxWidth:440 }}>
+            <p className="text-[1.05rem] text-muted leading-[1.7] mb-8 max-w-[440px]">
               ATS scoring, skill gap detection, interview prep, and personalized AI coaching — all from a single resume upload.
             </p>
 
             {/* CTA buttons */}
-            <div style={{ display:'flex', gap:12, marginBottom:32, flexWrap:'wrap' }}>
+            <div className="flex gap-3 mb-8 flex-wrap">
               <button
                 onClick={() => document.getElementById('upload-card')?.scrollIntoView({ behavior:'smooth' })}
-                className="btn-primary"
-                style={{ display:'flex', alignItems:'center', gap:8, padding:'13px 28px', fontSize:'0.9rem' }}
+                className="btn-primary flex items-center gap-2 px-7 py-3.25 text-[0.9rem]"
               >
                 <Sparkles size={16} />
                 Analyze My Resume
                 <ArrowRight size={15} />
               </button>
               <button
-                className="btn-ghost"
-                style={{ display:'flex', alignItems:'center', gap:7, padding:'13px 22px', fontSize:'0.9rem', border:'1.5px solid #E8EAF0', color:'#374151' }}
+                className="btn-ghost flex items-center gap-1.75 px-5.5 py-3.25 text-[0.9rem] border-[1.5px] border-border text-navy-muted"
                 onClick={() => document.getElementById('upload-card')?.scrollIntoView({ behavior:'smooth' })}
               >
                 See Sample Report
@@ -281,13 +242,13 @@ function HeroSection({ onStart }) {
             </div>
 
             {/* Trust row */}
-            <div style={{ display:'flex', gap:18, marginTop:20, flexWrap:'wrap' }}>
+            <div className="flex gap-4.5 mt-5 flex-wrap">
               {[
                 { icon:CheckCircle2, text:'No sign-up required' },
                 { icon:Shield,       text:'Data never stored'   },
                 { icon:Zap,          text:'Results in ~10s'     },
               ].map((t,i) => (
-                <span key={i} style={{ display:'flex', alignItems:'center', gap:5, fontSize:'0.72rem', color:'#9CA3AF', fontWeight:500 }}>
+                <span key={i} className="flex items-center gap-1.25 text-[0.72rem] text-subtle font-medium">
                   <t.icon size={12} color="#22C55E" /> {t.text}
                 </span>
               ))}
@@ -295,22 +256,22 @@ function HeroSection({ onStart }) {
           </div>
 
           {/* ── RIGHT COLUMN ── */}
-          <div className="animate-slide-left" style={{ display:'flex', flexDirection:'column', gap:16 }}>
+          <div className="animate-slide-left flex flex-col gap-4">
 
             {/* Upload card */}
-            <div id="upload-card" className="ev-card" style={{ padding:26, boxShadow:'0 12px 40px rgba(81,71,229,0.13)', border:'1.5px solid #E8EAF0' }}>
-              <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:20 }}>
+            <Card id="upload-card" className="p-6.5 shadow-[0_12px_40px_rgba(81,71,229,0.13)] border-[1.5px] border-border">
+              <div className="flex items-center gap-3 mb-5">
                 <LogoMark size={38} />
                 <div>
-                  <p style={{ fontWeight:700, fontSize:'0.95rem', color:'#1A1D2E', margin:0 }}>Analyze Your Resume</p>
-                  <p style={{ fontSize:'0.72rem', color:'#9CA3AF', margin:'2px 0 0' }}>AI scoring · ATS simulation · Interview prep</p>
+                  <p className="font-bold text-[0.95rem] text-navy m-0">Analyze Your Resume</p>
+                  <p className="text-[0.72rem] text-subtle mt-0.5 mb-0">AI scoring · ATS simulation · Interview prep</p>
                 </div>
               </div>
               <UploadSection onSubmit={onStart} />
-            </div>
+            </Card>
 
             {/* Feature pills — compact row */}
-            <div style={{ display:'flex', flexWrap:'wrap', gap:7 }}>
+            <div className="flex flex-wrap gap-1.75">
               {[
                 { icon:BarChart3,  text:'Semantic Scoring' },
                 { icon:Target,     text:'Skill Gaps'       },
@@ -319,7 +280,7 @@ function HeroSection({ onStart }) {
                 { icon:ShieldCheck,text:'ATS Simulation'   },
                 { icon:TrendingUp, text:'Interview Prep'   },
               ].map((f,i) => (
-                <div key={i} style={{ display:'flex', alignItems:'center', gap:5, background:'#fff', border:'1px solid #E8EAF0', borderRadius:99, padding:'4px 11px', fontSize:'0.68rem', fontWeight:600, color:'#374151', boxShadow:'0 1px 3px rgba(0,0,0,0.04)' }}>
+                <div key={i} className="flex items-center gap-1.25 bg-white border border-border rounded-full px-2.75 py-1 text-[0.68rem] font-semibold text-navy-muted shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
                   <f.icon size={11} color="#5147E5" />
                   {f.text}
                 </div>
@@ -329,26 +290,19 @@ function HeroSection({ onStart }) {
         </div>
 
         {/* ── STATS STRIP ── */}
-        <div
-          className="grid grid-cols-1 min-[480px]:grid-cols-2 md:grid-cols-4 gap-8"
-          style={{
-            marginTop:64,
-            paddingTop:40,
-            borderTop:'1px solid #E8EAF0',
-          }}
-        >
+        <div className="grid grid-cols-1 min-[480px]:grid-cols-2 md:grid-cols-4 gap-8 mt-16 pt-10 border-t border-border">
           {[
             { value:'8',              label:'ATS Checks Per Report', icon:BarChart3,   color:'#5147E5' },
             { value:'5',              label:'AI Coaching Tools',    icon:Brain,       color:'#22C55E' },
             { value:'<10s',           label:'Analysis Time',        icon:Zap,         color:'#F59E0B' },
             { value:'Llama 3.3-70b',  label:'Powered By',           icon:ShieldCheck, color:'#3B82F6' },
           ].map((s,i) => (
-            <div key={i} style={{ textAlign:'center' }}>
-              <div style={{ width:40, height:40, borderRadius:12, background: s.color + '14', border:`1px solid ${s.color}28`, display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 10px' }}>
+            <div key={i} className="text-center">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center mx-auto mb-2.5" style={{ background: s.color + '14', border: `1px solid ${s.color}28` }}>
                 <s.icon size={18} color={s.color} />
               </div>
-              <div style={{ fontSize:'1.6rem', fontWeight:800, color:'#1A1D2E', lineHeight:1.1 }}>{s.value}</div>
-              <div style={{ fontSize:'0.75rem', color:'#9CA3AF', marginTop:4, fontWeight:500 }}>{s.label}</div>
+              <div className="text-[1.6rem] font-extrabold text-navy leading-tight">{s.value}</div>
+              <div className="text-[0.75rem] text-subtle mt-1 font-medium">{s.label}</div>
             </div>
           ))}
         </div>
@@ -363,20 +317,20 @@ function HeroSection({ onStart }) {
 export default function App() {
   const { data, loading, error, progress, run, reset, loadAnalysis } = useAnalysis()
   return (
-    <div style={{ minHeight:'100vh', fontFamily:"'Inter',sans-serif" }}>
+    <div className="min-h-screen font-sans">
       <Header onLogoClick={reset} />
       <main>
         {loading && <LoadingScreen progress={progress} />}
         {error && !loading && (
-          <div style={{ minHeight:'100vh', background:'#F5F6FA', display:'flex', alignItems:'center', justifyContent:'center', paddingTop:62 }}>
-            <div className="ev-card" style={{ padding:36, textAlign:'center', maxWidth:400 }}>
-              <div style={{ width:52, height:52, background:'#FEF2F2', border:'1px solid #FECACA', borderRadius:14, display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 18px' }}>
+          <div className="min-h-screen bg-bg flex items-center justify-center pt-[62px]">
+            <Card className="p-9 text-center max-w-[400px]">
+              <div className="w-13 h-13 bg-danger-bg border border-danger-border rounded-xl flex items-center justify-center mx-auto mb-4.5">
                 <XIcon size={22} color="#EF4444" />
               </div>
-              <h3 style={{ fontWeight:700, color:'#1A1D2E', marginBottom:8 }}>Analysis Failed</h3>
-              <p style={{ color:'#EF4444', fontSize:'0.875rem', marginBottom:22, lineHeight:1.6 }}>{error}</p>
-              <button onClick={reset} className="btn-primary" style={{ width:'100%', justifyContent:'center' }}>Try Again</button>
-            </div>
+              <h3 className="font-bold text-navy mb-2">Analysis Failed</h3>
+              <p className="text-danger text-[0.875rem] mb-5.5 leading-[1.6]">{error}</p>
+              <button onClick={reset} className="btn-primary w-full justify-center">Try Again</button>
+            </Card>
           </div>
         )}
         {!loading && data && <ResultsDashboard data={data} onReset={reset} onSelectAnalysis={loadAnalysis} />}

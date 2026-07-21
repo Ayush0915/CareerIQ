@@ -109,3 +109,5 @@ class AnalysisResponse(BaseModel):
     contact_info:     Optional[Dict[str, str]] = None
     word_count:       Optional[int] = None
     processing_time_s: Optional[float] = None
+    job_description:   Optional[str] = ""
+    resume_text:       Optional[str] = ""

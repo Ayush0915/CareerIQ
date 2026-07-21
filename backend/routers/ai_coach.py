@@ -1,7 +1,8 @@
 import logging
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Dict
+from main import limiter
 
 from services.ai_coach import (
     rewrite_bullets,
@@ -9,6 +10,7 @@ from services.ai_coach import (
     generate_skill_roadmap,
     generate_interview_prep,
     generate_linkedin_summary,
+    generate_course_recommendations,
 )
 
 logger = logging.getLogger(__name__)
@@ -46,7 +48,8 @@ class LinkedInRequest(BaseModel):
 
 
 @router.post("/ai-coach", response_model=AICoachResponse)
-async def ai_coach(req: AICoachRequest):
+@limiter.limit("5/minute")
+async def ai_coach(request: Request, req: AICoachRequest):
     """Full coaching bundle — bullets, cover letter, roadmap, interview prep, LinkedIn."""
     import asyncio
     from functools import partial
@@ -119,3 +122,39 @@ async def linkedin_only(req: LinkedInRequest):
         return {"linkedin_summary": result}
     except Exception as e:
         raise HTTPException(500, detail=str(e))
+
+
+class CourseRecommendationsRequest(BaseModel):
+    skill_gap_analysis: Optional[Dict[str, List[str]]] = None
+    critical: Optional[List[str]] = []
+    important: Optional[List[str]] = []
+    optional: Optional[List[str]] = []
+    job_description: Optional[str] = ""
+    resume_text: Optional[str] = ""
+
+
+@router.post("/ai-coach/course-recommendations")
+async def course_recommendations_endpoint(req: CourseRecommendationsRequest):
+    """Generate dynamic, LLM-powered course recommendations for skill gaps."""
+    import asyncio
+    loop = asyncio.get_event_loop()
+
+    gap_dict = req.skill_gap_analysis or {
+        "critical": req.critical or [],
+        "important": req.important or [],
+        "optional": req.optional or [],
+    }
+
+    try:
+        recommendations = await loop.run_in_executor(
+            None,
+            generate_course_recommendations,
+            gap_dict,
+            req.job_description or "",
+            req.resume_text or "",
+        )
+        return {"courses": recommendations}
+    except Exception as e:
+        logger.exception(f"Course recommendations failed: {e}")
+        raise HTTPException(500, detail=f"Course recommendations failed: {str(e)}")
+

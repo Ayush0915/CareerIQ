@@ -56,6 +56,10 @@ typing-inspection==0.4.2
 typing_extensions==4.16.0
 tzdata==2026.2
 urllib3==2.7.0
+slowapi==0.1.9
 uvicorn==0.50.2
 watchfiles==1.2.0
 websockets==16.0
+pytest==8.3.4
+pytest-asyncio==0.25.2
+

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import {
-  Github, CheckCircle2, Shield, Zap, BarChart3,
+  CheckCircle2, Shield, Zap, BarChart3,
   ArrowRight, X as XIcon, TrendingUp,
   ShieldCheck, Brain, Sparkles
 } from 'lucide-react'
@@ -74,10 +74,6 @@ function Header({ onLogoClick }) {
 
         {/* Nav right */}
         <div className="flex items-center gap-4">
-          <a href="https://github.com/Ayush0915" target="_blank" rel="noreferrer"
-            className="w-8 h-8 rounded-lg border border-border flex items-center justify-center text-muted no-underline bg-white">
-            <Github size={14} />
-          </a>
         </div>
       </div>
     </header>

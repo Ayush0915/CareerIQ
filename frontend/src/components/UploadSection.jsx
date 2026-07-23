@@ -36,6 +36,18 @@ export default function UploadSection({ onSubmit, loading }) {
     maxFiles: 1,
   })
 
+  const getBoxStyle = ({ isActive, hasValue, isFocused }) => {
+    const isHighlight = isActive || isFocused
+    return {
+      border: `2px dashed ${isHighlight ? '#5147E5' : hasValue ? '#A5B4FC' : '#E8EAF0'}`,
+      borderRadius: 12,
+      padding: '16px',
+      background: isHighlight ? '#EEF0FE' : hasValue ? '#F5F6FF' : '#FAFBFF',
+      boxShadow: isHighlight ? '0 0 0 3px rgba(81,71,229,0.12)' : 'none',
+      transition: 'all 0.2s ease-in-out',
+    }
+  }
+
   const canSubmit = file && (jdMode === 'text' ? jd.trim() : jdFile) && !loading
 
   return (
@@ -53,13 +65,9 @@ export default function UploadSection({ onSubmit, loading }) {
         <div
           {...getResumeRootProps()}
           style={{
-            border: `2px dashed ${isResumeDragActive ? '#5147E5' : file ? '#A5B4FC' : '#E8EAF0'}`,
-            borderRadius: 12,
-            padding: '16px',
+            ...getBoxStyle({ isActive: isResumeDragActive, hasValue: !!file, isFocused: false }),
             textAlign: 'center',
             cursor: 'pointer',
-            background: isResumeDragActive ? '#EEF0FE' : file ? '#F5F6FF' : '#FAFBFF',
-            transition: 'all 0.2s',
           }}
         >
           <input {...getResumeInputProps()} />
@@ -150,11 +158,7 @@ export default function UploadSection({ onSubmit, loading }) {
         {jdMode === 'text' ? (
           <div
             style={{
-              border: `2px dashed ${isJdFocused ? '#5147E5' : jd.trim() ? '#A5B4FC' : '#E8EAF0'}`,
-              borderRadius: 12,
-              padding: '16px',
-              background: isJdFocused ? '#EEF0FE' : jd.trim() ? '#F5F6FF' : '#FAFBFF',
-              transition: 'all 0.2s',
+              ...getBoxStyle({ isActive: false, hasValue: !!jd.trim(), isFocused: isJdFocused }),
               position: 'relative',
             }}
           >
@@ -169,6 +173,7 @@ export default function UploadSection({ onSubmit, loading }) {
                 width: '100%',
                 border: 'none',
                 outline: 'none',
+                boxShadow: 'none',
                 background: 'transparent',
                 resize: 'none',
                 fontFamily: "'Inter', sans-serif",
@@ -176,6 +181,8 @@ export default function UploadSection({ onSubmit, loading }) {
                 color: '#1A1D2E',
                 boxSizing: 'border-box',
                 display: 'block',
+                padding: 0,
+                margin: 0,
               }}
             />
             {jd.length > 0 && (
@@ -197,13 +204,9 @@ export default function UploadSection({ onSubmit, loading }) {
           <div
             {...getJdRootProps()}
             style={{
-              border: `2px dashed ${isJdDragActive ? '#5147E5' : jdFile ? '#A5B4FC' : '#E8EAF0'}`,
-              borderRadius: 12,
-              padding: '16px',
+              ...getBoxStyle({ isActive: isJdDragActive, hasValue: !!jdFile, isFocused: false }),
               textAlign: 'center',
               cursor: 'pointer',
-              background: isJdDragActive ? '#EEF0FE' : jdFile ? '#F5F6FF' : '#FAFBFF',
-              transition: 'all 0.2s',
             }}
           >
             <input {...getJdInputProps()} />

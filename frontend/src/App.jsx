@@ -8,9 +8,20 @@ import UploadSection from './components/UploadSection'
 import ResultsDashboard from './components/ResultsDashboard'
 import LoadingScreen from './components/LoadingScreen'
 import { useAnalysis } from './hooks/useAnalysis'
+import { useTypewriter } from './hooks/useTypewriter'
 import Card from './components/ui/Card'
 import Badge from './components/ui/Badge'
 import ScoreBar from './components/ui/ScoreBar'
+
+/* ────────────────────────────────────────────
+   HERO TYPEWRITER PHRASES (Edit phrases here)
+──────────────────────────────────────────── */
+export const HERO_TYPEWRITER_PHRASES = [
+  'AI-powered resume analysis',
+  'instant ATS scoring',
+  'smart skill gap detection',
+  'personalized interview prep',
+]
 
 /* ────────────────────────────────────────────
    LOGO MARK  (inline SVG — clean, modern)
@@ -185,57 +196,23 @@ function ResultMockup() {
   )
 }
 
-const ROTATING_WORDS = ['interviews', 'callbacks', 'job offers', 'shortlists', 'opportunities']
-
-function RotatingHeadlineWord() {
-  const [index, setIndex] = useState(0)
-  const [visible, setVisible] = useState(true)
-
-  useEffect(() => {
-    // Respect prefers-reduced-motion setting
-    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      return
-    }
-
-    let timeoutId
-    const intervalId = setInterval(() => {
-      setVisible(false)
-      timeoutId = setTimeout(() => {
-        setIndex((prev) => (prev + 1) % ROTATING_WORDS.length)
-        setVisible(true)
-      }, 200)
-    }, 2500)
-
-    return () => {
-      clearInterval(intervalId)
-      if (timeoutId) clearTimeout(timeoutId)
-    }
-  }, [])
-
-  return (
-    <span
-      className="inline-block transition-all duration-350 ease-out"
-      style={{
-        opacity: visible ? 1 : 0,
-        transform: visible ? 'translateY(0)' : 'translateY(8px)',
-      }}
-    >
-      {ROTATING_WORDS[index]}
-    </span>
-  )
-}
-
 /* ────────────────────────────────────────────
    HERO
 ──────────────────────────────────────────── */
 function HeroSection({ onStart }) {
+  const { displayedText, isPaused } = useTypewriter(HERO_TYPEWRITER_PHRASES, {
+    typingSpeed: 50,
+    deletingSpeed: 25,
+    pauseDuration: 1500,
+  })
+
   return (
     <div className="bg-bg pt-[62px] relative overflow-hidden">
 
       {/* Subtle dot-grid background */}
       <div className="absolute inset-0 pointer-events-none opacity-50 bg-[radial-gradient(circle,#D8DCFC_1px,transparent_1px)] bg-[size:28px_28px]" />
 
-      {/* Gradient blob top-right and left-center (brought up closer to the card) */}
+      {/* Gradient blob top-right and left-center */}
       <div className="absolute -top-[160px] -right-[160px] w-[520px] h-[520px] rounded-full bg-[radial-gradient(circle,rgba(81,71,229,0.10)_0%,transparent_65%)] pointer-events-none" />
       <div className="absolute top-[260px] -left-[60px] w-[360px] h-[360px] rounded-full bg-[radial-gradient(circle,rgba(139,124,246,0.08)_0%,transparent_65%)] pointer-events-none" />
 
@@ -252,10 +229,18 @@ function HeroSection({ onStart }) {
             </div>
 
             {/* Headline */}
-            <h1 className="text-[3.4rem] font-extrabold text-navy leading-[1.08] tracking-[-0.03em] mb-4.5">
-              Land more <RotatingHeadlineWord /><br />
-              with <span className="bg-gradient-to-r from-accent to-[#8B7CF6] bg-clip-text text-transparent">AI-powered</span><br />
-              resume analysis
+            <h1 className="text-[3.2rem] sm:text-[3.4rem] font-extrabold text-navy leading-[1.12] tracking-[-0.03em] mb-4.5">
+              <div>Land more interviews with</div>
+              <div className="min-h-[1.15em] flex items-center flex-wrap">
+                <span className="bg-gradient-to-r from-accent to-[#8B7CF6] bg-clip-text text-transparent">
+                  {displayedText}
+                </span>
+                <span
+                  className={`inline-block w-[3px] h-[0.85em] bg-[#5147E5] ml-1 rounded-full align-middle ${
+                    isPaused ? 'animate-cursor-blink' : 'opacity-100'
+                  }`}
+                />
+              </div>
             </h1>
 
             {/* Subheadline */}

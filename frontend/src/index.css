@@ -31,12 +31,14 @@ body {
 @keyframes hexPulse  { 0%,100%{transform:scale(1)} 50%{transform:scale(1.08)} }
 @keyframes progressBar { from{width:0} to{width:var(--target-width)} }
 @keyframes spinRing  { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+@keyframes cursorBlink { 0%,100%{opacity:1} 50%{opacity:0} }
 
 /* ── Animation classes ── */
 .animate-fade-up    { animation: fadeUp 0.4s cubic-bezier(0.16,1,0.3,1) both; }
 .animate-fade-in    { animation: fadeIn 0.3s ease both; }
 .animate-slide-left { animation: slideLeft 0.35s cubic-bezier(0.16,1,0.3,1) both; }
 .animate-skeleton   { animation: skeleton 1.5s ease-in-out infinite; }
+.animate-cursor-blink { animation: cursorBlink 0.9s infinite; }
 
 /* ── Cards ── */
 .ev-card {

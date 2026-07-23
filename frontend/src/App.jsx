@@ -185,6 +185,46 @@ function ResultMockup() {
   )
 }
 
+const ROTATING_WORDS = ['interviews', 'callbacks', 'job offers', 'shortlists', 'opportunities']
+
+function RotatingHeadlineWord() {
+  const [index, setIndex] = useState(0)
+  const [visible, setVisible] = useState(true)
+
+  useEffect(() => {
+    // Respect prefers-reduced-motion setting
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      return
+    }
+
+    let timeoutId
+    const intervalId = setInterval(() => {
+      setVisible(false)
+      timeoutId = setTimeout(() => {
+        setIndex((prev) => (prev + 1) % ROTATING_WORDS.length)
+        setVisible(true)
+      }, 200)
+    }, 2500)
+
+    return () => {
+      clearInterval(intervalId)
+      if (timeoutId) clearTimeout(timeoutId)
+    }
+  }, [])
+
+  return (
+    <span
+      className="inline-block transition-all duration-350 ease-out"
+      style={{
+        opacity: visible ? 1 : 0,
+        transform: visible ? 'translateY(0)' : 'translateY(8px)',
+      }}
+    >
+      {ROTATING_WORDS[index]}
+    </span>
+  )
+}
+
 /* ────────────────────────────────────────────
    HERO
 ──────────────────────────────────────────── */
@@ -213,7 +253,7 @@ function HeroSection({ onStart }) {
 
             {/* Headline */}
             <h1 className="text-[3.4rem] font-extrabold text-navy leading-[1.08] tracking-[-0.03em] mb-4.5">
-              Land more interviews<br />
+              Land more <RotatingHeadlineWord /><br />
               with <span className="bg-gradient-to-r from-accent to-[#8B7CF6] bg-clip-text text-transparent">AI-powered</span><br />
               resume analysis
             </h1>

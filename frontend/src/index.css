@@ -40,10 +40,10 @@ body {
 
 /* ── Cards ── */
 .ev-card {
-  background: #fff;
+  background: #ffffff;
   border: 1px solid #E8EAF0;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.05), 0 4px 14px rgba(81,71,229,0.07);
   transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
 }
 .ev-card-hover:hover {

@@ -299,7 +299,7 @@ function HeroSection({ onStart }) {
           <div className="animate-slide-left flex flex-col gap-2">
 
             {/* Upload card */}
-            <Card id="upload-card" className="p-6.5 shadow-[0_12px_40px_rgba(81,71,229,0.13)] border-[1.5px] border-border">
+            <Card id="upload-card" className="p-7 sm:p-8 bg-white border border-[#E8EAF0] rounded-2xl shadow-[0_12px_40px_rgba(81,71,229,0.12),0_2px_10px_rgba(0,0,0,0.04)]">
               <div className="flex items-center gap-3 mb-5">
                 <LogoMark size={38} />
                 <div>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import {
-  Github, CheckCircle2, Shield, Zap, BarChart3, Target,
-  BookOpen, ArrowRight, X as XIcon, Star, Users, TrendingUp,
+  Github, CheckCircle2, Shield, Zap, BarChart3,
+  ArrowRight, X as XIcon, TrendingUp,
   ShieldCheck, Brain, Sparkles
 } from 'lucide-react'
 import UploadSection from './components/UploadSection'
@@ -190,16 +190,16 @@ function ResultMockup() {
 ──────────────────────────────────────────── */
 function HeroSection({ onStart }) {
   return (
-    <div className="bg-bg pt-[62px] relative overflow-hidden min-h-screen">
+    <div className="bg-bg pt-[62px] relative overflow-hidden">
 
       {/* Subtle dot-grid background */}
       <div className="absolute inset-0 pointer-events-none opacity-50 bg-[radial-gradient(circle,#D8DCFC_1px,transparent_1px)] bg-[size:28px_28px]" />
 
-      {/* Gradient blob top-right */}
+      {/* Gradient blob top-right and left-center (brought up closer to the card) */}
       <div className="absolute -top-[160px] -right-[160px] w-[520px] h-[520px] rounded-full bg-[radial-gradient(circle,rgba(81,71,229,0.10)_0%,transparent_65%)] pointer-events-none" />
-      <div className="absolute -bottom-[100px] -left-[80px] w-[420px] h-[420px] rounded-full bg-[radial-gradient(circle,rgba(139,124,246,0.07)_0%,transparent_65%)] pointer-events-none" />
+      <div className="absolute top-[260px] -left-[60px] w-[360px] h-[360px] rounded-full bg-[radial-gradient(circle,rgba(139,124,246,0.08)_0%,transparent_65%)] pointer-events-none" />
 
-      <div className="max-w-[1160px] mx-auto px-7 pt-14 pb-16 relative">
+      <div className="max-w-[1160px] mx-auto px-7 pt-10 pb-10 relative">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-16 items-center">
 
           {/* ── LEFT COLUMN ── */}
@@ -256,7 +256,7 @@ function HeroSection({ onStart }) {
           </div>
 
           {/* ── RIGHT COLUMN ── */}
-          <div className="animate-slide-left flex flex-col gap-4">
+          <div className="animate-slide-left flex flex-col gap-2">
 
             {/* Upload card */}
             <Card id="upload-card" className="p-6.5 shadow-[0_12px_40px_rgba(81,71,229,0.13)] border-[1.5px] border-border">
@@ -269,28 +269,11 @@ function HeroSection({ onStart }) {
               </div>
               <UploadSection onSubmit={onStart} />
             </Card>
-
-            {/* Feature pills — compact row */}
-            <div className="flex flex-wrap gap-1.75">
-              {[
-                { icon:BarChart3,  text:'Semantic Scoring' },
-                { icon:Target,     text:'Skill Gaps'       },
-                { icon:Brain,      text:'Llama 3.3-70b'    },
-                { icon:BookOpen,   text:'Courses'          },
-                { icon:ShieldCheck,text:'ATS Simulation'   },
-                { icon:TrendingUp, text:'Interview Prep'   },
-              ].map((f,i) => (
-                <div key={i} className="flex items-center gap-1.25 bg-white border border-border rounded-full px-2.75 py-1 text-[0.68rem] font-semibold text-navy-muted shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-                  <f.icon size={11} color="#5147E5" />
-                  {f.text}
-                </div>
-              ))}
-            </div>
           </div>
         </div>
 
         {/* ── STATS STRIP ── */}
-        <div className="grid grid-cols-1 min-[480px]:grid-cols-2 md:grid-cols-4 gap-8 mt-16 pt-10 border-t border-border">
+        <div className="grid grid-cols-1 min-[480px]:grid-cols-2 md:grid-cols-4 gap-8 mt-8 pt-6 border-t border-border">
           {[
             { value:'8',              label:'ATS Checks Per Report', icon:BarChart3,   color:'#5147E5' },
             { value:'5',              label:'AI Coaching Tools',    icon:Brain,       color:'#22C55E' },
@@ -310,6 +293,7 @@ function HeroSection({ onStart }) {
     </div>
   )
 }
+
 
 /* ────────────────────────────────────────────
    ROOT APP

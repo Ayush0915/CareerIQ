@@ -88,7 +88,8 @@ async def ai_coach(request: Request, req: AICoachRequest):
 
 
 @router.post("/ai-coach/interview-prep")
-async def interview_prep_only(req: InterviewPrepRequest):
+@limiter.limit("5/minute")
+async def interview_prep_only(request: Request, req: InterviewPrepRequest):
     """Standalone interview prep questions endpoint."""
     import asyncio
     loop = asyncio.get_event_loop()
@@ -107,7 +108,8 @@ async def interview_prep_only(req: InterviewPrepRequest):
 
 
 @router.post("/ai-coach/linkedin")
-async def linkedin_only(req: LinkedInRequest):
+@limiter.limit("5/minute")
+async def linkedin_only(request: Request, req: LinkedInRequest):
     """Standalone LinkedIn summary generator."""
     import asyncio
     loop = asyncio.get_event_loop()
@@ -134,7 +136,8 @@ class CourseRecommendationsRequest(BaseModel):
 
 
 @router.post("/ai-coach/course-recommendations")
-async def course_recommendations_endpoint(req: CourseRecommendationsRequest):
+@limiter.limit("5/minute")
+async def course_recommendations_endpoint(request: Request, req: CourseRecommendationsRequest):
     """Generate dynamic, LLM-powered course recommendations for skill gaps."""
     import asyncio
     loop = asyncio.get_event_loop()

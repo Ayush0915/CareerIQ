@@ -38,6 +38,13 @@ CareerIQ is designed as a decoupled, high-performance web application consisting
    └───────────────────┘      └───────────────────┘      └───────────────────┘
 ```
 
+### 🛠 Tech Stack
+- **Frontend**: React 18 SPA, Vite, Tailwind CSS, Lucide React icons
+- **Backend**: Python 3.10+, FastAPI microservice, Pydantic data schemas, Uvicorn ASGI server
+- **AI Core / LLM Engine**: **Groq Llama 3.3-70b Versatile** (`llama-3.3-70b-versatile`) for deep resume evaluations, ATS simulation checks, interview question generation, and AI career coaching
+- **NLP & Similarity**: SentenceTransformers for local dense vector semantic matching & Cosine similarity
+- **Job Intelligence**: RapidAPI JSearch API integration
+
 ---
 
 ## 📁 Repository Structure

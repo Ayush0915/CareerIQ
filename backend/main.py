@@ -184,7 +184,7 @@ async def capabilities():
         ],
         "models": {
             "primary":  "llama-3.3-70b-versatile",
-            "fallback": "llama-3.1-8b-instant",
+            "fallback": "llama-3.3-70b-versatile",
             "embedding":"all-MiniLM-L6-v2",
         },
         "ats_checks": [

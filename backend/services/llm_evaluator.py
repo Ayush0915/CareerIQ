@@ -9,7 +9,7 @@ client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
 # Best model for quality; falls back to fast model on quota/timeout
 PRIMARY_MODEL   = "llama-3.3-70b-versatile"
-FALLBACK_MODEL  = "llama-3.1-8b-instant"
+FALLBACK_MODEL  = "llama-3.3-70b-versatile"
 MAX_RETRIES     = 3
 RETRY_DELAY     = 1.5   # seconds
 

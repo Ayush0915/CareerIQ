@@ -4,7 +4,7 @@ from groq import Groq
 
 client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 MODEL = "llama-3.3-70b-versatile"
-FAST_MODEL = "llama-3.1-8b-instant"
+FAST_MODEL = "llama-3.3-70b-versatile"
 
 
 def _call(prompt: str, max_tokens: int = 500, fast: bool = False) -> str:

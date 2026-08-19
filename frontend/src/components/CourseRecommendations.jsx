@@ -262,7 +262,7 @@ export default function CourseRecommendations({ skillGaps, jobDescription = '', 
         <div>
           <h2 className="font-display font-extrabold text-ink text-lg mb-1">AI-Curated Course Recommendations</h2>
           <p className="text-sm text-muted">
-            {courses.length} personalized courses dynamically generated for your <span className="text-primary font-semibold">{allGaps.length} skill gaps</span> · powered by GPT OSS 120b
+            {courses.length} personalized courses dynamically generated for your <span className="text-primary font-semibold">{allGaps.length} skill gaps</span> · powered by Qwen 3.6 27b
           </p>
         </div>
         <div className="text-right shrink-0 ml-4">

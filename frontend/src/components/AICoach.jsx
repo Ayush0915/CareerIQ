@@ -79,7 +79,7 @@ export default function AICoach({ analysisData }) {
             </div>
             <div>
               <h3 style={{ fontWeight:700, fontSize:'0.95rem', color:'#1A1D2E', margin:'0 0 2px' }}>AI Career Coach</h3>
-              <p style={{ fontSize:'0.72rem', color:'#9CA3AF', margin:0 }}>Powered by GPT OSS 120b via Groq</p>
+              <p style={{ fontSize:'0.72rem', color:'#9CA3AF', margin:0 }}>Powered by Qwen 3.6 27b via Groq</p>
             </div>
           </div>
           {!result && (

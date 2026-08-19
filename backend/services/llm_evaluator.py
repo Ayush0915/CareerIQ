@@ -8,8 +8,8 @@ from groq import Groq
 client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
 # Best model for quality; falls back to fast model on quota/timeout
-PRIMARY_MODEL   = "openai/gpt-oss-120b"
-FALLBACK_MODEL  = "openai/gpt-oss-20b"
+PRIMARY_MODEL   = "qwen/qwen3.6-27b"
+FALLBACK_MODEL  = "qwen/qwen3.6-27b"
 MAX_RETRIES     = 3
 RETRY_DELAY     = 1.5   # seconds
 
@@ -58,7 +58,7 @@ def _call_llm(prompt: str, max_tokens: int = 1500, model: str = None) -> str:
                     max_tokens=max_tokens,
                     temperature=0.1,
                 )
-                return response.choices[0].message.content.strip()
+                return re.sub(r"<think>[\s\S]*?</think>", "", response.choices[0].message.content, flags=re.IGNORECASE).strip()
             except Exception as e:
                 last_err = e
                 if attempt < MAX_RETRIES - 1:

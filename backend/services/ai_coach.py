@@ -1,10 +1,17 @@
 import os
+import re
 import asyncio
 from groq import Groq
 
 client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
-MODEL = "openai/gpt-oss-120b"
-FAST_MODEL = "openai/gpt-oss-20b"
+MODEL = "qwen/qwen3.6-27b"
+FAST_MODEL = "qwen/qwen3.6-27b"
+
+
+def _strip_think(text: str) -> str:
+    """Remove <think>...</think> reasoning blocks from qwen output."""
+    text = re.sub(r"<think>[\s\S]*?</think>", "", text, flags=re.IGNORECASE)
+    return text.strip()
 
 
 def _call(prompt: str, max_tokens: int = 500, fast: bool = False) -> str:
@@ -19,11 +26,11 @@ def _call(prompt: str, max_tokens: int = 500, fast: bool = False) -> str:
                 max_tokens=max_tokens,
                 temperature=0.3,
             )
-            return resp.choices[0].message.content.strip()
+            return _strip_think(resp.choices[0].message.content)
         except Exception as e:
             if attempt < 2:
                 time.sleep(1.5 * (attempt + 1))
-    # Final fallback to fast model
+    # Final fallback
     try:
         resp = client.chat.completions.create(
             model=FAST_MODEL,
@@ -31,7 +38,7 @@ def _call(prompt: str, max_tokens: int = 500, fast: bool = False) -> str:
             max_tokens=max_tokens,
             temperature=0.3,
         )
-        return resp.choices[0].message.content.strip()
+        return _strip_think(resp.choices[0].message.content)
     except Exception as e:
         return f"[Could not generate — {e}]"
 

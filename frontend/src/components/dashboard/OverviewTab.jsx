@@ -61,7 +61,7 @@ export function ScoreFitTab({ data }) {
           <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
             <Brain size={18} color="#5147E5" />
             <h3 style={{ fontWeight:700, color:'#1A1D2E', fontSize:'0.95rem', margin:0 }}>AI Fit Reasoning</h3>
-            <Badge variant="accent" style={{ fontSize:'0.62rem', marginLeft:'auto' }}>GPT OSS 120b</Badge>
+            <Badge variant="accent" style={{ fontSize:'0.62rem', marginLeft:'auto' }}>Qwen 3.6 27b</Badge>
           </div>
           <p style={{ fontSize:'0.85rem', color:'#4B5563', lineHeight:1.65, margin:0 }}>{matchReasoning}</p>
         </Card>

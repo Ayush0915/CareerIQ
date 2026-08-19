@@ -299,7 +299,7 @@ function HeroSection({ onStart }) {
             { value:'8',              label:'ATS Checks Per Report', icon:BarChart3,   color:'#5147E5' },
             { value:'5',              label:'AI Coaching Tools',    icon:Brain,       color:'#22C55E' },
             { value:'<10s',           label:'Analysis Time',        icon:Zap,         color:'#F59E0B' },
-            { value:'GPT OSS 120b',  label:'Powered By',           icon:ShieldCheck, color:'#3B82F6' },
+            { value:'Qwen 3.6 27b',  label:'Powered By',           icon:ShieldCheck, color:'#3B82F6' },
           ].map((s,i) => (
             <div key={i} className="text-center">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center mx-auto mb-2.5" style={{ background: s.color + '14', border: `1px solid ${s.color}28` }}>

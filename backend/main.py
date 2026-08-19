@@ -183,8 +183,8 @@ async def capabilities():
             {"path": "/api/v1/jobs",                 "method": "POST", "desc": "Live job recommendations"},
         ],
         "models": {
-            "primary":  "openai/gpt-oss-120b",
-            "fallback": "openai/gpt-oss-20b",
+            "primary":  "qwen/qwen3.6-27b",
+            "fallback": "qwen/qwen3.6-27b",
             "embedding":"all-MiniLM-L6-v2",
         },
         "ats_checks": [

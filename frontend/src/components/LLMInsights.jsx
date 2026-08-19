@@ -69,7 +69,7 @@ export default function LLMInsights({ llm, experience }) {
             <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
               <Brain size={18} color="#5147E5" />
               <h3 style={{ fontWeight:700, color:'#1A1D2E', fontSize:'0.95rem', margin:0 }}>AI Master Evaluation</h3>
-              <span className="ev-badge ev-badge-accent" style={{ fontSize:'0.62rem' }}>GPT OSS 120b</span>
+              <span className="ev-badge ev-badge-accent" style={{ fontSize:'0.62rem' }}>Qwen 3.6 27b</span>
             </div>
             <p style={{ fontSize:'0.82rem', color:'#6B7280', lineHeight:1.65, margin:0 }}>{llm.job_match_reasoning}</p>
           </div>

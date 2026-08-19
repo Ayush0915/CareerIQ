@@ -6,7 +6,7 @@ const STEPS = [
   { label: 'Analyzing your experience',   detail: 'Detecting years & seniority level' },
   { label: 'Extracting your skills',      detail: 'Matching against 2,000+ skills'    },
   { label: 'Running semantic analysis',   detail: 'BERT embeddings vs job description' },
-  { label: 'Generating AI insights',      detail: 'Llama 3.3-70b deep evaluation'     },
+  { label: 'Generating AI insights',      detail: 'GPT OSS 120b deep evaluation'     },
 ]
 
 const CATEGORIES = ['Content', 'Sections', 'ATS Essentials', 'Skill Gaps']

@@ -8,8 +8,8 @@ from groq import Groq
 client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
 # Best model for quality; falls back to fast model on quota/timeout
-PRIMARY_MODEL   = "llama-3.3-70b-versatile"
-FALLBACK_MODEL  = "llama-3.3-70b-versatile"
+PRIMARY_MODEL   = "openai/gpt-oss-120b"
+FALLBACK_MODEL  = "openai/gpt-oss-20b"
 MAX_RETRIES     = 3
 RETRY_DELAY     = 1.5   # seconds
 

@@ -45,7 +45,7 @@ packages = []
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["backend"]
+pythonpath = ["backend", "."]
 filterwarnings = ["ignore::DeprecationWarning"]
 asyncio_mode = "auto"
 

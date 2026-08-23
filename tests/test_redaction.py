@@ -6,7 +6,6 @@ with personal data and none of it contributes to a fit assessment, so it is
 stripped before the prompt is built.
 """
 import pytest
-
 from core.redact import redact, redact_for_prompt
 from services.llm_evaluator import build_prompt
 

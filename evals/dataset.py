@@ -17,9 +17,8 @@ set and the Kaggle resume + job-description collections.
 """
 from __future__ import annotations
 
-import json
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Dict, Iterator, List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -30,11 +29,11 @@ class Candidate(BaseModel):
     id: str
     resume_text: str
     relevance: int = Field(ge=0, le=3, description="0 not a fit .. 3 strong fit")
-    expected_skills: List[str] = Field(
+    expected_skills: list[str] = Field(
         default_factory=list,
         description="Skills a correct extractor must find in this resume",
     )
-    expected_missing: List[str] = Field(
+    expected_missing: list[str] = Field(
         default_factory=list,
         description="JD skills this candidate genuinely lacks",
     )
@@ -47,7 +46,7 @@ class EvalCase(BaseModel):
     id: str
     job_title: str
     jd_text: str
-    candidates: List[Candidate]
+    candidates: list[Candidate]
 
     stress: str = Field(
         default="",
@@ -57,7 +56,7 @@ class EvalCase(BaseModel):
             "Empty means a general case."
         ),
     )
-    equivalent_pairs: List[List[str]] = Field(
+    equivalent_pairs: list[list[str]] = Field(
         default_factory=list,
         description=(
             "Candidate id pairs that describe substantively the same fit and so "
@@ -67,19 +66,19 @@ class EvalCase(BaseModel):
         ),
     )
 
-    def ideal_order(self) -> List[str]:
+    def ideal_order(self) -> list[str]:
         return [c.id for c in sorted(self.candidates, key=lambda c: -c.relevance)]
 
-    def relevance_by_id(self) -> Dict[str, int]:
+    def relevance_by_id(self) -> dict[str, int]:
         return {c.id: c.relevance for c in self.candidates}
 
 
-def load_cases(path: Optional[Path] = None) -> List[EvalCase]:
+def load_cases(path: Path | None = None) -> list[EvalCase]:
     """Load every ``*.jsonl`` file in the data directory (or one file)."""
     target = path or DATA_DIR
     files = [target] if target.is_file() else sorted(target.glob("*.jsonl"))
 
-    cases: List[EvalCase] = []
+    cases: list[EvalCase] = []
     for file in files:
         for line_number, line in enumerate(file.read_text(encoding="utf-8").splitlines(), 1):
             line = line.strip()
@@ -98,15 +97,15 @@ def load_cases(path: Optional[Path] = None) -> List[EvalCase]:
     return cases
 
 
-def iter_pairs(cases: List[EvalCase]) -> Iterator[tuple[EvalCase, Candidate]]:
+def iter_pairs(cases: list[EvalCase]) -> Iterator[tuple[EvalCase, Candidate]]:
     for case in cases:
         for candidate in case.candidates:
             yield case, candidate
 
 
-def summary(cases: List[EvalCase]) -> Dict[str, int]:
+def summary(cases: list[EvalCase]) -> dict[str, int]:
     candidates = [c for _, c in iter_pairs(cases)]
-    grades: Dict[int, int] = {}
+    grades: dict[int, int] = {}
     for candidate in candidates:
         grades[candidate.relevance] = grades.get(candidate.relevance, 0) + 1
     return {

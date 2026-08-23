@@ -16,15 +16,15 @@ it; that is the entire point.
 from __future__ import annotations
 
 import re
+from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Sequence
 
 from services.section_parser import parse_sections
 from services.skill_extractor import extract_skills_from_text
 
 # How much a mention is worth, by the section it appears in.
 # "skills" is low on purpose: a list is a claim, not a demonstration.
-SECTION_WEIGHT: Dict[str, float] = {
+SECTION_WEIGHT: dict[str, float] = {
     "experience": 1.00,
     "projects": 0.90,
     "certifications": 0.65,
@@ -51,7 +51,7 @@ class SkillEvidence:
     """Where a skill was found and how much that is worth."""
 
     skill: str
-    sections: List[str] = field(default_factory=list)
+    sections: list[str] = field(default_factory=list)
     weight: float = 0.0
     quantified: bool = False
 
@@ -72,11 +72,11 @@ def _has_quantifier_near(text: str, skill: str) -> bool:
 def gather_evidence(
     resume_text: str,
     skills_list: Sequence[str],
-    sections: Optional[Dict[str, str]] = None,
-) -> Dict[str, SkillEvidence]:
+    sections: dict[str, str] | None = None,
+) -> dict[str, SkillEvidence]:
     """Map each detected skill to the strength of its supporting evidence."""
     parsed = sections if sections is not None else parse_sections(resume_text)
-    evidence: Dict[str, SkillEvidence] = {}
+    evidence: dict[str, SkillEvidence] = {}
 
     for section_name, section_text in parsed.items():
         if not section_text or not section_text.strip():
@@ -107,7 +107,7 @@ def gather_evidence(
 
 
 def weighted_coverage(
-    evidence: Dict[str, SkillEvidence],
+    evidence: dict[str, SkillEvidence],
     jd_skills: Sequence[str],
 ) -> float:
     """Percentage of the job's skills that are actually evidenced.
@@ -123,7 +123,7 @@ def weighted_coverage(
     return round((total / len(required)) * 100, 2)
 
 
-def evidence_ratio(evidence: Dict[str, SkillEvidence]) -> float:
+def evidence_ratio(evidence: dict[str, SkillEvidence]) -> float:
     """Share of claimed skills that appear outside a bare skills list.
 
     Near zero is the signature of a padded skills section.
@@ -134,7 +134,7 @@ def evidence_ratio(evidence: Dict[str, SkillEvidence]) -> float:
     return round(demonstrated / len(evidence), 3)
 
 
-def unsupported_skills(evidence: Dict[str, SkillEvidence]) -> List[str]:
+def unsupported_skills(evidence: dict[str, SkillEvidence]) -> list[str]:
     """Skills claimed in a list but never shown in context.
 
     Useful to the candidate directly: these are the lines a recruiter will

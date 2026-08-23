@@ -1,6 +1,5 @@
 import re
 
-
 SECTION_KEYWORDS = {
     "summary":    ["summary", "objective", "profile", "about", "overview"],
     "experience": ["experience", "work history", "employment", "internship", "work experience"],

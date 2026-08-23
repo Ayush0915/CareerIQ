@@ -10,7 +10,6 @@ from __future__ import annotations
 import hashlib
 import logging
 import time
-from typing import Dict, Optional, Tuple
 
 from core import llm
 from core.config import settings
@@ -20,7 +19,7 @@ from models.schemas import LLMEvaluation
 logger = logging.getLogger(__name__)
 
 CACHE_TTL = settings.llm_cache_ttl_s
-_eval_cache: Dict[str, Tuple[float, LLMEvaluation]] = {}
+_eval_cache: dict[str, tuple[float, LLMEvaluation]] = {}
 
 
 # ── Cache ─────────────────────────────────────────────────────────────────────
@@ -30,7 +29,7 @@ def _get_cache_key(resume_text: str, job_description: str) -> str:
     return hashlib.sha256(content).hexdigest()
 
 
-def _get_cached(key: str) -> Optional[LLMEvaluation]:
+def _get_cached(key: str) -> LLMEvaluation | None:
     entry = _eval_cache.get(key)
     if entry is None:
         return None
@@ -73,7 +72,7 @@ def _sanitize(text: str) -> str:
 def build_prompt(
     resume_text: str,
     job_description: str,
-    contact_info: Optional[dict] = None,
+    contact_info: dict | None = None,
 ) -> str:
     # Identifiers are stripped before the text leaves this process. The model
     # is judging skills and achievements; it has no use for a phone number.
@@ -107,8 +106,8 @@ Scoring guidance:
 async def llm_master_evaluate(
     resume_text: str,
     job_description: str,
-    contact_info: Optional[dict] = None,
-) -> Optional[LLMEvaluation]:
+    contact_info: dict | None = None,
+) -> LLMEvaluation | None:
     """Evaluate a resume against a JD, with a short TTL cache.
 
     Returns ``None`` when the LLM is unavailable so the caller can render the

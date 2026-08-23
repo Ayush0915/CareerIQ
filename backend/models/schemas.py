@@ -1,5 +1,6 @@
+from typing import Any
+
 from pydantic import BaseModel
-from typing import List, Dict, Optional, Any
 
 
 class TopMatch(BaseModel):
@@ -8,18 +9,18 @@ class TopMatch(BaseModel):
 
 
 class SkillGapAnalysis(BaseModel):
-    critical:  List[str]
-    important: List[str]
-    optional:  List[str]
+    critical:  list[str]
+    important: list[str]
+    optional:  list[str]
 
 
 class SignalNoiseResult(BaseModel):
     clarity_score:            float
-    weak_phrases_found:       List[str]
-    strong_verbs_found:       List[str]
+    weak_phrases_found:       list[str]
+    strong_verbs_found:       list[str]
     quantified_sentences:     int
     passive_voice_count:      int = 0
-    buzzwords_found:          List[str] = []
+    buzzwords_found:          list[str] = []
     total_sentences_analyzed: int = 0
 
 
@@ -32,9 +33,9 @@ class SectionScores(BaseModel):
 
 
 class KeywordAnalysis(BaseModel):
-    present:               List[str]
-    missing_critical:      List[str]
-    missing_recommended:   List[str]
+    present:               list[str]
+    missing_critical:      list[str]
+    missing_recommended:   list[str]
 
 
 class ExperienceInfo(BaseModel):
@@ -63,17 +64,17 @@ class LLMEvaluation(BaseModel):
     years_detected:          str
     section_scores:          SectionScores
     keyword_analysis:        KeywordAnalysis
-    grammar_issues:          List[str]
-    cliches_found:           List[str]
+    grammar_issues:          list[str]
+    cliches_found:           list[str]
     readability_score:       float
     passive_voice_count:     int
     quantified_achievements: int
     section_feedback:        SectionFeedback
-    top_improvements:        List[str]
+    top_improvements:        list[str]
     ats_compatibility:       float
     job_match_reasoning:     str
-    interview_questions:     List[str]
-    resume_strengths:        List[str]
+    interview_questions:     list[str]
+    resume_strengths:        list[str]
     salary_insight:          str
     competition_level:       str
     fit_verdict:             str
@@ -82,13 +83,13 @@ class LLMEvaluation(BaseModel):
 class ATSCheckResult(BaseModel):
     score:    float
     note:     str
-    evidence: Optional[Dict[str, Any]] = None
+    evidence: dict[str, Any] | None = None
 
 
 class ATSSimulation(BaseModel):
     overall_ats_score: float
-    checks:            Dict[str, Any]
-    top_issues:        List[str]
+    checks:            dict[str, Any]
+    top_issues:        list[str]
     verdict:           str
 
 
@@ -109,8 +110,8 @@ class FitBreakdown(BaseModel):
     clarity:            float
     level:              LevelFitInfo
     evidence_ratio:     float = 1.0
-    unsupported_skills: List[str] = []
-    notes:              List[str] = []
+    unsupported_skills: list[str] = []
+    notes:              list[str] = []
 
 
 class AnalysisResponse(BaseModel):
@@ -118,12 +119,12 @@ class AnalysisResponse(BaseModel):
     semantic_match_score:  float
     ats_keyword_score:     float
     # Skills
-    resume_skills:   List[str]
-    jd_skills:       List[str]
-    matching_skills: List[str]
-    missing_skills:  List[str]
+    resume_skills:   list[str]
+    jd_skills:       list[str]
+    matching_skills: list[str]
+    missing_skills:  list[str]
     # Top sentence matches
-    top_matches:     List[TopMatch]
+    top_matches:     list[TopMatch]
     # Gap analysis
     skill_gap_analysis: SkillGapAnalysis
     # Writing quality
@@ -132,16 +133,16 @@ class AnalysisResponse(BaseModel):
     feedback:              str
     total_skills_detected: int
     # AI-powered
-    llm_evaluation:   Optional[LLMEvaluation] = None
-    experience_info:  Optional[ExperienceInfo] = None
-    section_scores:   Optional[Dict[str, float]] = None
+    llm_evaluation:   LLMEvaluation | None = None
+    experience_info:  ExperienceInfo | None = None
+    section_scores:   dict[str, float] | None = None
     # New: ATS simulation
-    ats_simulation:   Optional[ATSSimulation] = None
+    ats_simulation:   ATSSimulation | None = None
     # Unified fit score — the same function the evaluation harness scores
-    fit:              Optional[FitBreakdown] = None
+    fit:              FitBreakdown | None = None
     # New: metadata
-    contact_info:     Optional[Dict[str, str]] = None
-    word_count:       Optional[int] = None
-    processing_time_s: Optional[float] = None
-    job_description:   Optional[str] = ""
-    resume_text:       Optional[str] = ""
+    contact_info:     dict[str, str] | None = None
+    word_count:       int | None = None
+    processing_time_s: float | None = None
+    job_description:   str | None = ""
+    resume_text:       str | None = ""

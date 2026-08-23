@@ -1,6 +1,5 @@
 """Cache behaviour for the schema-constrained resume evaluation."""
 import pytest
-
 from core.config import settings
 from models.schemas import KeywordAnalysis, LLMEvaluation, SectionFeedback, SectionScores
 from services import llm_evaluator

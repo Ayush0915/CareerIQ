@@ -1,14 +1,14 @@
-import os
 import asyncio
-import shutil
-import tempfile
-import logging
-import time
 import json
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Request
-from fastapi.responses import StreamingResponse
+import logging
+import os
+import tempfile
+import time
+
 from core.config import settings
 from core.limiter import limiter
+from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
+from fastapi.responses import StreamingResponse
 from models.schemas import (
     AnalysisResponse,
     ExperienceInfo,
@@ -16,17 +16,6 @@ from models.schemas import (
     LLMEvaluation,
     TopMatch,
 )
-
-from typing import Optional
-from services.parser import parse_resume, extract_text_from_pdf, extract_text_from_docx
-from services.skill_extractor import load_skills, extract_skills_from_text
-from services.similarity import calculate_similarity
-from services.recommender import calculate_keyword_coverage, get_missing_skills, get_matching_skills, generate_feedback
-from services.skill_gap_analyzer import classify_skill_gaps
-from services.signal_noise_analyzer import analyze_signal_to_noise
-from services.llm_evaluator import llm_master_evaluate
-from services.experience_detector import detect_experience
-from services.section_parser import parse_sections, score_sections
 from services.ats_simulator import simulate_ats
 from services.evidence import (
     evidence_ratio,
@@ -34,7 +23,20 @@ from services.evidence import (
     unsupported_skills,
     weighted_coverage,
 )
+from services.experience_detector import detect_experience
+from services.llm_evaluator import llm_master_evaluate
+from services.parser import extract_text_from_docx, extract_text_from_pdf, parse_resume
+from services.recommender import (
+    generate_feedback,
+    get_matching_skills,
+    get_missing_skills,
+)
 from services.scoring import compute_fit
+from services.section_parser import parse_sections, score_sections
+from services.signal_noise_analyzer import analyze_signal_to_noise
+from services.similarity import calculate_similarity
+from services.skill_extractor import extract_skills_from_text, load_skills
+from services.skill_gap_analyzer import classify_skill_gaps
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -72,8 +74,8 @@ def _run_sync(fn, *args):
 async def analyze_resume(
     request: Request,
     file: UploadFile = File(...),
-    job_description: Optional[str] = Form(""),
-    job_description_file: Optional[UploadFile] = File(None),
+    job_description: str | None = Form(""),
+    job_description_file: UploadFile | None = File(None),
 ):
     t0 = time.perf_counter()
 
@@ -146,7 +148,6 @@ async def analyze_resume(
                 return
 
             resume_raw   = parse_result["raw_text"]
-            resume_clean = parse_result["clean_text"]
             contact_info = parse_result.get("contact_info", {})
             word_count   = parse_result.get("word_count", 0)
 

@@ -10,8 +10,7 @@ something outside this repository rather than only against ourselves.
 from __future__ import annotations
 
 import math
-from typing import Dict, Iterable, List, Sequence, Set
-
+from collections.abc import Iterable, Sequence
 
 # ── Ranking ───────────────────────────────────────────────────────────────────
 
@@ -54,8 +53,8 @@ def rbo(left: Sequence[str], right: Sequence[str], p: float = 0.9) -> float:
         return 0.0
 
     depth = min(len(left), len(right))
-    seen_left: Set[str] = set()
-    seen_right: Set[str] = set()
+    seen_left: set[str] = set()
+    seen_right: set[str] = set()
     weighted_sum = 0.0
     overlap_at_depth = 0
 
@@ -74,7 +73,7 @@ def spearman(a: Sequence[float], b: Sequence[float]) -> float:
     if len(a) != len(b) or len(a) < 2:
         return 0.0
 
-    def ranks(values: Sequence[float]) -> List[float]:
+    def ranks(values: Sequence[float]) -> list[float]:
         order = sorted(range(len(values)), key=lambda i: values[i])
         out = [0.0] * len(values)
         i = 0
@@ -92,7 +91,7 @@ def spearman(a: Sequence[float], b: Sequence[float]) -> float:
     n = len(ra)
     mean_a = sum(ra) / n
     mean_b = sum(rb) / n
-    num = sum((x - mean_a) * (y - mean_b) for x, y in zip(ra, rb))
+    num = sum((x - mean_a) * (y - mean_b) for x, y in zip(ra, rb, strict=True))
     den_a = math.sqrt(sum((x - mean_a) ** 2 for x in ra))
     den_b = math.sqrt(sum((y - mean_b) ** 2 for y in rb))
     if den_a == 0 or den_b == 0:
@@ -104,7 +103,7 @@ def spearman(a: Sequence[float], b: Sequence[float]) -> float:
 
 # ── Set comparison ────────────────────────────────────────────────────────────
 
-def prf(predicted: Iterable[str], expected: Iterable[str]) -> Dict[str, float]:
+def prf(predicted: Iterable[str], expected: Iterable[str]) -> dict[str, float]:
     """Precision, recall and F1 over two sets of labels."""
     pred = {p.strip().lower() for p in predicted if p and p.strip()}
     gold = {e.strip().lower() for e in expected if e and e.strip()}
@@ -149,4 +148,4 @@ def mae(predicted: Sequence[float], expected: Sequence[float]) -> float:
     """Mean absolute error, for score calibration checks."""
     if not predicted or len(predicted) != len(expected):
         return 0.0
-    return mean([abs(p - e) for p, e in zip(predicted, expected)])
+    return mean([abs(p - e) for p, e in zip(predicted, expected, strict=True)])

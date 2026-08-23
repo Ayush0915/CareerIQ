@@ -1,14 +1,13 @@
 """Course recommendations, including the no-fabricated-URLs guarantee."""
 import pytest
-
 from core.config import settings
+from services import ai_coach
 from services.ai_coach import (
     CourseRecommendation,
     CourseRecommendations,
     _fallback_course_recommendations,
     generate_course_recommendations,
 )
-from services import ai_coach
 
 GAPS = {"critical": ["docker", "kubernetes"], "important": ["aws"], "optional": ["graphql"]}
 

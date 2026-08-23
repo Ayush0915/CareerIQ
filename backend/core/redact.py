@@ -13,7 +13,6 @@ is untrustworthy, what leaks is a skills profile rather than a person.
 from __future__ import annotations
 
 import re
-from typing import Dict, List, Optional, Tuple
 
 EMAIL_RE = re.compile(r"[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}")
 # Deliberately conservative: needs a separator or a leading +, so that
@@ -33,7 +32,7 @@ URL_TOKEN = "[URL]"
 NAME_TOKEN = "[CANDIDATE]"
 
 
-def redact(text: str, names: Optional[List[str]] = None) -> Tuple[str, Dict[str, int]]:
+def redact(text: str, names: list[str] | None = None) -> tuple[str, dict[str, int]]:
     """Return the text with identifiers replaced, plus a count per category.
 
     Order matters: social URLs are matched before the generic URL rule so they
@@ -43,7 +42,7 @@ def redact(text: str, names: Optional[List[str]] = None) -> Tuple[str, Dict[str,
     if not text:
         return "", {}
 
-    counts: Dict[str, int] = {}
+    counts: dict[str, int] = {}
 
     def substitute(pattern: re.Pattern, token: str, label: str, subject: str) -> str:
         replaced, hits = pattern.subn(token, subject)
@@ -75,7 +74,7 @@ def redact(text: str, names: Optional[List[str]] = None) -> Tuple[str, Dict[str,
     return out, counts
 
 
-def redact_for_prompt(text: str, contact_info: Optional[Dict[str, str]] = None) -> str:
+def redact_for_prompt(text: str, contact_info: dict[str, str] | None = None) -> str:
     """Convenience wrapper taking the parser's contact_info dict."""
     names = []
     if contact_info:

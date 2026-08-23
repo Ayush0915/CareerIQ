@@ -5,10 +5,9 @@ negotiates downwards: strict schema -> JSON mode -> prompt-only, remembering
 what worked per model. These tests cover that negotiation without a network.
 """
 import pytest
-from pydantic import BaseModel
-
 from core import llm
 from core.config import settings
+from pydantic import BaseModel
 
 
 class Simple(BaseModel):

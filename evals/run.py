@@ -15,14 +15,10 @@ import asyncio
 import json
 import sys
 from pathlib import Path
-from typing import Dict, List
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "backend"))
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from evals import metrics  # noqa: E402
-from evals.dataset import EvalCase, load_cases, summary  # noqa: E402
-from evals.parse_recall import DEFAULT_FIXTURES, score_all  # noqa: E402
 from services.evidence import (  # noqa: E402
     evidence_ratio,
     gather_evidence,
@@ -35,8 +31,12 @@ from services.signal_noise_analyzer import analyze_signal_to_noise  # noqa: E402
 from services.similarity import calculate_similarity  # noqa: E402
 from services.skill_extractor import extract_skills_from_text, load_skills  # noqa: E402
 
+from evals import metrics  # noqa: E402
+from evals.dataset import EvalCase, load_cases, summary  # noqa: E402
+from evals.parse_recall import DEFAULT_FIXTURES, score_all  # noqa: E402
 
-def score_candidates(case: EvalCase, skills: List[str]) -> List[Dict]:
+
+def score_candidates(case: EvalCase, skills: list[str]) -> list[dict]:
     """Run the deterministic pipeline for every candidate under one JD."""
     jd_skills = extract_skills_from_text(case.jd_text, skills)
     rows = []
@@ -81,14 +81,14 @@ def score_candidates(case: EvalCase, skills: List[str]) -> List[Dict]:
     return rows
 
 
-def evaluate(cases: List[EvalCase]) -> Dict:
+def evaluate(cases: list[EvalCase]) -> dict:
     skills = load_skills()
 
     ndcg_5, ndcg_10, rbos, spearmans = [], [], [], []
     skill_f1, missing_f1 = [], []
     per_case = []
-    by_stress: Dict[str, List[float]] = {}
-    equivalence: List[Dict] = []
+    by_stress: dict[str, list[float]] = {}
+    equivalence: list[dict] = []
 
     for case in cases:
         rows = score_candidates(case, skills)
@@ -170,7 +170,7 @@ def evaluate(cases: List[EvalCase]) -> Dict:
     }
 
 
-async def evaluate_llm(cases: List[EvalCase]) -> Dict:
+async def evaluate_llm(cases: list[EvalCase]) -> dict:
     """Schema conformance and agreement of the LLM evaluation."""
     from core import llm
     from services.llm_evaluator import llm_master_evaluate
@@ -204,7 +204,7 @@ async def evaluate_llm(cases: List[EvalCase]) -> Dict:
     }
 
 
-def render(report: Dict) -> str:
+def render(report: dict) -> str:
     lines = []
     add = lines.append
 

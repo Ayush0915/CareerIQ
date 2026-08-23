@@ -1,11 +1,9 @@
 import logging
-from typing import Dict, List, Optional
-
-from fastapi import APIRouter, HTTPException, Request
-from pydantic import BaseModel, Field
 
 from core.config import settings
 from core.limiter import limiter
+from fastapi import APIRouter, HTTPException, Request
+from pydantic import BaseModel, Field
 from services.ai_coach import (
     COACHING_MODES,
     MODE_LABELS,
@@ -26,9 +24,9 @@ class CoachingRequest(BaseModel):
     """
 
     mode: str = Field(description=f"One of: {', '.join(COACHING_MODES)}")
-    weak_phrases: List[str] = []
-    matching_skills: List[str] = []
-    missing_skills: List[str] = []
+    weak_phrases: list[str] = []
+    matching_skills: list[str] = []
+    missing_skills: list[str] = []
     job_description: str = ""
     resume_text: str = ""
     experience_level: str = "mid"
@@ -41,12 +39,12 @@ class CoachingResponse(BaseModel):
 
 
 class CourseRecommendationsRequest(BaseModel):
-    skill_gap_analysis: Optional[Dict[str, List[str]]] = None
-    critical: Optional[List[str]] = []
-    important: Optional[List[str]] = []
-    optional: Optional[List[str]] = []
-    job_description: Optional[str] = ""
-    resume_text: Optional[str] = ""
+    skill_gap_analysis: dict[str, list[str]] | None = None
+    critical: list[str] | None = []
+    important: list[str] | None = []
+    optional: list[str] | None = []
+    job_description: str | None = ""
+    resume_text: str | None = ""
 
 
 @router.get("/ai-coach/modes", tags=["AI Coach"])

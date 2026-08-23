@@ -10,7 +10,6 @@ import sys
 from pathlib import Path
 
 import pytest
-
 from core.config import BACKEND_DIR, ENV_FILES, REPO_ROOT, Settings
 
 BACKEND = str(BACKEND_DIR)

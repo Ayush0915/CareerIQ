@@ -1,5 +1,6 @@
 import os
 import re
+
 from utils.text_cleaner import clean_text
 
 # Try pdfplumber first (better for multi-column resumes), fallback to pypdf

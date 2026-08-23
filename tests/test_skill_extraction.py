@@ -7,14 +7,12 @@ JD side and were destroyed on the resume side, so every role requiring them
 reported them as missing skills.
 """
 import pytest
-
 from services.skill_extractor import (
     extract_skills_from_text,
     load_skills,
     normalize_text,
 )
 from utils.text_cleaner import normalize
-
 
 SYMBOL_RESUME = (
     "Senior Engineer. Built services in C++ and C#, shipped .NET APIs, "

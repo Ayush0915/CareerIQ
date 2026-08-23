@@ -1,15 +1,12 @@
-import httpx
 import asyncio
 import logging
-import os
-from typing import List, Dict
-from dotenv import load_dotenv
 
-load_dotenv()
+import httpx
+from core.config import settings
 
 logger = logging.getLogger(__name__)
 
-RAPIDAPI_KEY = os.environ.get("RAPIDAPI_KEY")
+RAPIDAPI_KEY = settings.rapidapi_key
 logger.info(f"RAPIDAPI_KEY loaded: {bool(RAPIDAPI_KEY)}")
 
 # Per-request timeout for one JSearch leg, and the total budget for both legs
@@ -27,7 +24,7 @@ SKILL_TO_ROLE = {
     frozenset(['react', 'node', 'javascript', 'mongodb']): 'Full Stack Developer',
 }
 
-def detect_role_from_skills(skills: List[str]) -> str:
+def detect_role_from_skills(skills: list[str]) -> str:
     skills_set = set(s.lower() for s in skills)
     best_match = 'Software Developer'
     best_score = 0
@@ -38,7 +35,7 @@ def detect_role_from_skills(skills: List[str]) -> str:
             best_match = role_name
     return best_match
 
-def fetch_jsearch_jobs_sync(keywords: List[str], location: str = "India") -> List[Dict]:
+def fetch_jsearch_jobs_sync(keywords: list[str], location: str = "India") -> list[dict]:
     """Fetch real jobs from JSearch using sync requests"""
     import requests
     jobs = []
@@ -128,7 +125,7 @@ def fetch_jsearch_jobs_sync(keywords: List[str], location: str = "India") -> Lis
 
     return jobs
 
-async def fetch_remotive_jobs(keywords: List[str]) -> List[Dict]:
+async def fetch_remotive_jobs(keywords: list[str]) -> list[dict]:
     """Fallback: Fetch remote tech jobs from Remotive"""
     jobs = []
     search_term = " ".join(keywords[:3])
@@ -163,7 +160,7 @@ async def fetch_remotive_jobs(keywords: List[str]) -> List[Dict]:
         logger.error(f"Remotive fetch error: {e}")
     return jobs
 
-def calculate_job_match(job: Dict, resume_skills: List[str]) -> float:
+def calculate_job_match(job: dict, resume_skills: list[str]) -> float:
     if not resume_skills:
         return 0.0
     job_text = (
@@ -176,8 +173,7 @@ def calculate_job_match(job: Dict, resume_skills: List[str]) -> float:
     score = (matched / len(resume_skills)) * 100
     return round(min(score, 100), 1)
 
-async def fetch_all_jobs(resume_skills: List[str], location: str = "India") -> List[Dict]:
-    import asyncio
+async def fetch_all_jobs(resume_skills: list[str], location: str = "India") -> list[dict]:
     keywords = resume_skills[:5] if resume_skills else ["software", "developer"]
     logger.info(f"Skills received: {resume_skills}")
 

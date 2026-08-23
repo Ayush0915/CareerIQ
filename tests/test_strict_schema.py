@@ -5,13 +5,11 @@ false and to list every property as required, and provider support for $ref is
 inconsistent, so references are inlined.
 """
 import json
-from typing import Dict, List, Optional
 
 import pytest
-from pydantic import BaseModel
-
 from core.llm import to_strict_schema
 from models.schemas import LLMEvaluation
+from pydantic import BaseModel
 
 
 class Inner(BaseModel):
@@ -21,12 +19,12 @@ class Inner(BaseModel):
 class Outer(BaseModel):
     name: str
     inner: Inner
-    tags: List[str]
-    optional_note: Optional[str] = None
+    tags: list[str]
+    optional_note: str | None = None
 
 
 class WithMap(BaseModel):
-    lookup: Dict[str, str]
+    lookup: dict[str, str]
 
 
 class TestStructure:

@@ -108,7 +108,7 @@ def calculate_similarity(resume_text: str, jd_text: str, top_k: int = 5):
 
     similarities = _cosine(sentence_embeddings, jd_embedding)
 
-    sentence_scores = list(zip(filtered_sentences, similarities))
+    sentence_scores = list(zip(filtered_sentences, similarities, strict=True))
     sentence_scores.sort(key=lambda x: x[1], reverse=True)
 
     top_matches = sentence_scores[:top_k]

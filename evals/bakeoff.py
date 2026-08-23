@@ -17,7 +17,6 @@ import json
 import sys
 import time
 from pathlib import Path
-from typing import Dict, List
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "backend"))
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -26,16 +25,16 @@ from evals import metrics  # noqa: E402
 from evals.dataset import EvalCase, load_cases  # noqa: E402
 
 
-async def run_model(model: str, cases: List[EvalCase], limit: int) -> Dict:
+async def run_model(model: str, cases: list[EvalCase], limit: int) -> dict:
     from core import llm
-    from services.llm_evaluator import build_prompt
     from models.schemas import LLMEvaluation
+    from services.llm_evaluator import build_prompt
 
     conformant = 0
-    failures: List[str] = []
-    latencies: List[float] = []
-    scores: List[float] = []
-    grades: List[int] = []
+    failures: list[str] = []
+    latencies: list[float] = []
+    scores: list[float] = []
+    grades: list[int] = []
 
     pairs = [
         (case, candidate)
@@ -73,7 +72,7 @@ async def run_model(model: str, cases: List[EvalCase], limit: int) -> Dict:
     }
 
 
-def render(results: List[Dict]) -> str:
+def render(results: list[dict]) -> str:
     lines = ["", "Model bake-off", "=" * 78, ""]
     header = f"{'MODEL':<38} {'CONFORM':>8} {'FAILS':>6} {'LAT s':>7} {'SPEARMAN':>9}"
     lines.append(header)

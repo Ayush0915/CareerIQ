@@ -7,12 +7,10 @@ schema-constrained call rather than regex-scraping a JSON array out of prose.
 from __future__ import annotations
 
 import logging
-from typing import Dict, List, Optional
-
-from pydantic import BaseModel, Field
 
 from core import llm
 from core.redact import redact_for_prompt
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +33,7 @@ async def _safe_text(prompt: str, *, max_tokens: int) -> str:
 
 # ── Bullet rewriting ──────────────────────────────────────────────────────────
 
-async def rewrite_bullets(weak_phrases: List[str], resume_text: str, job_description: str) -> str:
+async def rewrite_bullets(weak_phrases: list[str], resume_text: str, job_description: str) -> str:
     if not weak_phrases:
         return "No weak phrases detected — your bullet points already use strong action language."
 
@@ -70,8 +68,8 @@ Then one line: **Key change:** [what made these stronger]"""
 # ── Cover letter ──────────────────────────────────────────────────────────────
 
 async def generate_cover_letter(
-    matching_skills: List[str],
-    missing_skills: List[str],
+    matching_skills: list[str],
+    missing_skills: list[str],
     job_description: str,
     resume_text: str,
 ) -> str:
@@ -101,7 +99,7 @@ Write a 3-paragraph cover letter. Rules:
 
 # ── Skill roadmap ─────────────────────────────────────────────────────────────
 
-async def generate_skill_roadmap(missing_skills: List[str], job_description: str) -> str:
+async def generate_skill_roadmap(missing_skills: list[str], job_description: str) -> str:
     if not missing_skills:
         return (
             "You already match the critical skills for this role. Focus on deepening "
@@ -142,8 +140,8 @@ Keep each section under 40 words. Name real tools. Never fabricate a URL."""
 # ── Interview prep ────────────────────────────────────────────────────────────
 
 async def generate_interview_prep(
-    matching_skills: List[str],
-    missing_skills: List[str],
+    matching_skills: list[str],
+    missing_skills: list[str],
     job_description: str,
     experience_level: str = "mid",
 ) -> str:
@@ -182,7 +180,7 @@ Generate an interview prep guide:
 # ── LinkedIn summary ──────────────────────────────────────────────────────────
 
 async def generate_linkedin_summary(
-    matching_skills: List[str],
+    matching_skills: list[str],
     resume_text: str,
     job_description: str,
 ) -> str:
@@ -223,9 +221,9 @@ MODE_LABELS = {
 async def generate_one(
     mode: str,
     *,
-    weak_phrases: Optional[List[str]] = None,
-    matching_skills: Optional[List[str]] = None,
-    missing_skills: Optional[List[str]] = None,
+    weak_phrases: list[str] | None = None,
+    matching_skills: list[str] | None = None,
+    missing_skills: list[str] | None = None,
     job_description: str = "",
     resume_text: str = "",
     experience_level: str = "mid",
@@ -272,7 +270,7 @@ class CourseRecommendation(BaseModel):
 
 
 class CourseRecommendations(BaseModel):
-    courses: List[CourseRecommendation]
+    courses: list[CourseRecommendation]
 
 
 _PLATFORM_SEARCH = {
@@ -297,7 +295,7 @@ def _search_url(platform: str, query: str) -> str:
     return base + quote_plus(query)
 
 
-def _to_ui_shape(items: List[CourseRecommendation]) -> List[Dict]:
+def _to_ui_shape(items: list[CourseRecommendation]) -> list[dict]:
     """Adapt to the shape the existing frontend card expects."""
     out = []
     for index, course in enumerate(items):
@@ -322,7 +320,7 @@ def _to_ui_shape(items: List[CourseRecommendation]) -> List[Dict]:
     return out
 
 
-def _fallback_course_recommendations(skill_gap_analysis: dict) -> List[Dict]:
+def _fallback_course_recommendations(skill_gap_analysis: dict) -> list[dict]:
     """Deterministic recommendations when the LLM is unavailable.
 
     Builds real search URLs rather than inventing course links.
@@ -363,10 +361,10 @@ def _fallback_course_recommendations(skill_gap_analysis: dict) -> List[Dict]:
 
 
 async def generate_course_recommendations(
-    skill_gap_analysis: Optional[dict],
+    skill_gap_analysis: dict | None,
     job_description: str = "",
     resume_text: str = "",
-) -> List[Dict]:
+) -> list[dict]:
     """Two learning resources per skill gap, personalized to the target role."""
     gaps = skill_gap_analysis if isinstance(skill_gap_analysis, dict) else {}
     critical = gaps.get("critical") or []

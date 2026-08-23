@@ -14,7 +14,6 @@ from __future__ import annotations
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "backend"))
 
@@ -29,7 +28,7 @@ class ParseFixture:
 
     id: str
     text: str
-    expected: Dict[str, str]
+    expected: dict[str, str]
     layout: str = "single-column"  # single-column | two-column | table-heavy
     notes: str = ""
 
@@ -38,7 +37,7 @@ class ParseFixture:
 class ParseResult:
     fixture_id: str
     layout: str
-    recovered: Dict[str, bool] = field(default_factory=dict)
+    recovered: dict[str, bool] = field(default_factory=dict)
 
     @property
     def recall(self) -> float:
@@ -47,7 +46,7 @@ class ParseResult:
         return sum(self.recovered.values()) / len(self.recovered)
 
     @property
-    def lost_fields(self) -> List[str]:
+    def lost_fields(self) -> list[str]:
         return [name for name, ok in self.recovered.items() if not ok]
 
 
@@ -74,14 +73,14 @@ def score_fixture(fixture: ParseFixture) -> ParseResult:
     return result
 
 
-def score_all(fixtures: List[ParseFixture]) -> Dict[str, object]:
+def score_all(fixtures: list[ParseFixture]) -> dict[str, object]:
     results = [score_fixture(f) for f in fixtures]
 
-    by_layout: Dict[str, List[float]] = {}
+    by_layout: dict[str, list[float]] = {}
     for result in results:
         by_layout.setdefault(result.layout, []).append(result.recall)
 
-    field_totals: Dict[str, List[bool]] = {}
+    field_totals: dict[str, list[bool]] = {}
     for result in results:
         for name, ok in result.recovered.items():
             field_totals.setdefault(name, []).append(ok)
@@ -106,7 +105,7 @@ def score_all(fixtures: List[ParseFixture]) -> Dict[str, object]:
 # shows up; the reversed-flow fixture simulates what column interleaving does to
 # the header region the contact extractor scans.
 
-DEFAULT_FIXTURES: List[ParseFixture] = [
+DEFAULT_FIXTURES: list[ParseFixture] = [
     ParseFixture(
         id="clean-single-column",
         layout="single-column",

@@ -9,11 +9,13 @@ Matching is longest-first with span masking, so "node.js" wins over "node",
 import csv
 import os
 import re
+from collections.abc import Sequence
 from functools import lru_cache
-from typing import List, Pattern, Sequence, Tuple
+from re import Pattern
+
+from utils.text_cleaner import SKILL_BOUNDARY, SKILL_CHARS, normalize
 
 from services.aliases import expand as expand_aliases
-from utils.text_cleaner import SKILL_BOUNDARY, SKILL_CHARS, normalize
 
 # Short forms with exactly one reading. Ambiguous ones (notably "tf", which is
 # Terraform on an infra resume and TensorFlow on an ML one) live in
@@ -47,7 +49,7 @@ FALLBACK_SKILLS = [
 ]
 
 
-def load_skills(file_path: str = None) -> List[str]:
+def load_skills(file_path: str = None) -> list[str]:
     """Load the skill taxonomy from CSV, falling back to a built-in list."""
     path = file_path or _SKILLS_PATH
     try:
@@ -93,7 +95,7 @@ def normalize_text(text: str) -> str:
 
 
 @lru_cache(maxsize=8)
-def _subphrases(skills: Tuple[str, ...]) -> dict:
+def _subphrases(skills: tuple[str, ...]) -> dict:
     """Map each multi-word skill to the shorter taxonomy skills inside it.
 
     The taxonomy contains overlapping entries such as "ci/cd" and
@@ -123,7 +125,7 @@ def _subphrases(skills: Tuple[str, ...]) -> dict:
 
 
 @lru_cache(maxsize=8)
-def _compiled(skills: Tuple[str, ...]) -> List[Tuple[str, Pattern]]:
+def _compiled(skills: tuple[str, ...]) -> list[tuple[str, Pattern]]:
     """Compile one pattern per skill, longest first."""
     unique = {s.strip().lower() for s in skills if s and s.strip()}
     ordered = sorted(unique, key=len, reverse=True)
@@ -138,7 +140,7 @@ def _compiled(skills: Tuple[str, ...]) -> List[Tuple[str, Pattern]]:
     ]
 
 
-def extract_skills_from_text(text: str, skills_list: Sequence[str]) -> List[str]:
+def extract_skills_from_text(text: str, skills_list: Sequence[str]) -> list[str]:
     """Return the sorted set of taxonomy skills present in ``text``.
 
     ``text`` is raw — normalization happens here so callers cannot normalize

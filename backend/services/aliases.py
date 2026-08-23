@@ -14,7 +14,6 @@ from __future__ import annotations
 
 import re
 from functools import lru_cache
-from typing import Dict, List, Tuple
 
 from utils.text_cleaner import SKILL_CHARS
 
@@ -26,7 +25,7 @@ from utils.text_cleaner import SKILL_CHARS
 # Deliberately conservative: every entry here is an abbreviation with one
 # obvious expansion in an engineering context. Ambiguous short forms ("go" for
 # golang vs the verb, "r" the language) are left to exact matching.
-ALIASES: Dict[str, str] = {
+ALIASES: dict[str, str] = {
     # ── Orchestration / infrastructure ──────────────────────────────────
     "k8s": "kubernetes",
     "k3s": "kubernetes",
@@ -98,7 +97,7 @@ ALIASES: Dict[str, str] = {
 # and picking one globally is wrong roughly half the time — which is how a
 # platform engineer's Terraform experience was being read as TensorFlow.
 # Resolved per document by looking at what else is in it.
-AMBIGUOUS: Dict[str, Dict[str, Tuple[str, ...]]] = {
+AMBIGUOUS: dict[str, dict[str, tuple[str, ...]]] = {
     "tf": {
         "terraform": (
             "terraform", "kubernetes", "infrastructure", "provisioning",
@@ -112,9 +111,9 @@ AMBIGUOUS: Dict[str, Dict[str, Tuple[str, ...]]] = {
 }
 
 
-def _resolve_ambiguous(text: str) -> Dict[str, str]:
+def _resolve_ambiguous(text: str) -> dict[str, str]:
     """Pick a reading for each ambiguous alias, based on the whole document."""
-    resolved: Dict[str, str] = {}
+    resolved: dict[str, str] = {}
 
     for alias, candidates in AMBIGUOUS.items():
         scores = {
@@ -131,7 +130,7 @@ def _resolve_ambiguous(text: str) -> Dict[str, str]:
 
 
 @lru_cache(maxsize=1)
-def _compiled() -> List[Tuple["re.Pattern[str]", str]]:
+def _compiled() -> list[tuple[re.Pattern[str], str]]:
     """Longest alias first, so "c plus plus" wins over "c"."""
     ordered = sorted(ALIASES.items(), key=lambda item: len(item[0]), reverse=True)
     return [

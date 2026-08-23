@@ -1,22 +1,17 @@
-from dotenv import load_dotenv
-
-load_dotenv()
-
 import datetime
 import logging
 import time
 import uuid
 from contextlib import asynccontextmanager
 
+from core.config import settings
+from core.limiter import limiter
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from routers import ai_coach, analyze, jobs
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
-
-from core.config import settings
-from core.limiter import limiter
-from routers import ai_coach, analyze, jobs
 
 # ── Logging setup ─────────────────────────────────────────────────────────────
 logging.basicConfig(

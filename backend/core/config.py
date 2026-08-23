@@ -7,7 +7,6 @@ startup error.
 """
 from functools import lru_cache
 from pathlib import Path
-from typing import List
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -86,17 +85,17 @@ class Settings(BaseSettings):
         return self.openrouter_api_key
 
     @staticmethod
-    def _chain(primary: str, fallbacks: str) -> List[str]:
+    def _chain(primary: str, fallbacks: str) -> list[str]:
         extra = [m.strip() for m in fallbacks.split(",") if m.strip()]
         return [primary, *[m for m in extra if m != primary]]
 
     @property
-    def model_chain(self) -> List[str]:
+    def model_chain(self) -> list[str]:
         """Primary first, then fallbacks in priority order."""
         return self._chain(self.primary_model, self.fallback_models)
 
     @property
-    def fast_model_chain(self) -> List[str]:
+    def fast_model_chain(self) -> list[str]:
         return self._chain(self.fast_primary_model, self.fast_fallback_models)
 
     # ── Networking ────────────────────────────────────────────────────────
@@ -148,7 +147,7 @@ class Settings(BaseSettings):
     def is_production(self) -> bool:
         return self.environment == "production"
 
-    def missing_credentials(self) -> List[str]:
+    def missing_credentials(self) -> list[str]:
         """Credentials that are absent, for a startup warning.
 
         Deliberately a warning rather than a hard failure: the deterministic

@@ -4,7 +4,6 @@ Every test here corresponds to a number that moved on the scorecard, so a
 regression shows up as a failing test rather than as a quietly worse ranking.
 """
 import pytest
-
 from services.aliases import expand
 from services.evidence import (
     evidence_ratio,

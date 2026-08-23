@@ -30,7 +30,7 @@ import asyncio
 import json
 import logging
 import re
-from typing import Any, Dict, List, Optional, Tuple, Type, TypeVar
+from typing import Any, TypeVar
 
 from openai import APIError, APITimeoutError, AsyncOpenAI, RateLimitError
 from pydantic import BaseModel, ValidationError
@@ -46,11 +46,11 @@ RETRYABLE = (APITimeoutError, RateLimitError, APIError)
 STRICT = "strict"
 JSON_OBJECT = "json_object"
 PROMPT = "prompt"
-LADDER: Tuple[str, ...] = (STRICT, JSON_OBJECT, PROMPT)
+LADDER: tuple[str, ...] = (STRICT, JSON_OBJECT, PROMPT)
 
 # Remembers the first mode that worked for a model, so the ladder is not
 # re-walked on every request.
-_mode_cache: Dict[str, str] = {}
+_mode_cache: dict[str, str] = {}
 
 # Substrings that mean "this endpoint will not do structured output for you"
 # rather than "something transient went wrong".
@@ -107,7 +107,7 @@ def _looks_like_policy_block(error: Exception) -> bool:
 
 # ── Client ────────────────────────────────────────────────────────────────────
 
-_client: Optional[AsyncOpenAI] = None
+_client: AsyncOpenAI | None = None
 
 
 def get_client() -> AsyncOpenAI:
@@ -135,7 +135,7 @@ def reset_client() -> None:
     _mode_cache.clear()
 
 
-def _headers() -> Dict[str, str]:
+def _headers() -> dict[str, str]:
     return {"HTTP-Referer": settings.app_url, "X-Title": settings.app_name}
 
 
@@ -150,7 +150,7 @@ def _looks_unsupported(error: Exception) -> bool:
 
 # ── Strict JSON schema ────────────────────────────────────────────────────────
 
-def to_strict_schema(model: Type[BaseModel]) -> Dict[str, Any]:
+def to_strict_schema(model: type[BaseModel]) -> dict[str, Any]:
     """Convert a Pydantic model into a schema strict mode will accept.
 
     Strict mode requires every object to declare ``additionalProperties: false``
@@ -193,7 +193,7 @@ def to_strict_schema(model: Type[BaseModel]) -> Dict[str, Any]:
     return resolve(raw)
 
 
-def describe_schema(model: Type[BaseModel]) -> str:
+def describe_schema(model: type[BaseModel]) -> str:
     """Prompt-embeddable schema description, for the degraded modes."""
     return json.dumps(to_strict_schema(model), indent=2)
 
@@ -229,14 +229,14 @@ def extract_json(raw: str) -> str:
 
 def _build_body(
     prompt: str,
-    models: List[str],
+    models: list[str],
     max_tokens: int,
     temperature: float,
-    response_format: Optional[Dict[str, Any]],
+    response_format: dict[str, Any] | None,
     require_parameters: bool,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     primary, *fallbacks = models
-    extra_body: Dict[str, Any] = {}
+    extra_body: dict[str, Any] = {}
 
     if fallbacks:
         # Model-level fallback: tried in order when every provider for the
@@ -245,7 +245,7 @@ def _build_body(
     if require_parameters:
         extra_body["provider"] = {"require_parameters": True}
 
-    body: Dict[str, Any] = {
+    body: dict[str, Any] = {
         "model": primary,
         "messages": [{"role": "user", "content": prompt}],
         "max_tokens": max_tokens,
@@ -259,9 +259,9 @@ def _build_body(
     return body
 
 
-async def _send(body: Dict[str, Any]) -> str:
+async def _send(body: dict[str, Any]) -> str:
     client = get_client()
-    last_error: Optional[Exception] = None
+    last_error: Exception | None = None
 
     for attempt in range(settings.llm_max_retries):
         try:
@@ -299,7 +299,7 @@ async def complete_text(
     *,
     max_tokens: int = 600,
     temperature: float = 0.3,
-    models: Optional[List[str]] = None,
+    models: list[str] | None = None,
 ) -> str:
     """Free-form completion, used for the coaching features."""
     if not is_configured():
@@ -311,7 +311,7 @@ async def complete_text(
     return await _send(_build_body(prompt, chain, max_tokens, temperature, None, False))
 
 
-def _modes_to_try(model: str) -> Tuple[str, ...]:
+def _modes_to_try(model: str) -> tuple[str, ...]:
     configured = settings.structured_output_mode
     if configured != "auto":
         return (configured,)
@@ -325,12 +325,12 @@ def _modes_to_try(model: str) -> Tuple[str, ...]:
 
 async def complete_json(
     prompt: str,
-    schema_model: Type[TModel],
+    schema_model: type[TModel],
     *,
     max_tokens: int = 2000,
     temperature: float = 0.1,
-    models: Optional[List[str]] = None,
-    schema_name: Optional[str] = None,
+    models: list[str] | None = None,
+    schema_name: str | None = None,
 ) -> TModel:
     """Completion parsed into ``schema_model``, negotiating output mode.
 
@@ -347,7 +347,7 @@ async def complete_json(
     primary = chain[0]
     name = schema_name or schema_model.__name__
     schema = to_strict_schema(schema_model)
-    last_error: Optional[Exception] = None
+    last_error: Exception | None = None
 
     for mode in _modes_to_try(primary):
         if mode == STRICT:
@@ -403,7 +403,7 @@ async def complete_json(
     raise LLMError(f"Could not obtain valid {schema_model.__name__}: {last_error}")
 
 
-def _validate(raw: str, schema_model: Type[TModel]) -> Optional[TModel]:
+def _validate(raw: str, schema_model: type[TModel]) -> TModel | None:
     for candidate in (raw, extract_json(raw)):
         try:
             return schema_model.model_validate_json(candidate)
@@ -417,12 +417,12 @@ def _validate(raw: str, schema_model: Type[TModel]) -> Optional[TModel]:
 async def _repair(
     prompt: str,
     bad_output: str,
-    schema_model: Type[TModel],
-    chain: List[str],
+    schema_model: type[TModel],
+    chain: list[str],
     max_tokens: int,
-    response_format: Optional[Dict[str, Any]],
+    response_format: dict[str, Any] | None,
     require_parameters: bool,
-) -> Optional[TModel]:
+) -> TModel | None:
     """One repair attempt, feeding the validation error back to the model."""
     try:
         schema_model.model_validate_json(extract_json(bad_output))

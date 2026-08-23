@@ -11,8 +11,8 @@ number the user is actually shown.
 from __future__ import annotations
 
 import re
+from collections.abc import Sequence
 from dataclasses import asdict, dataclass, field
-from typing import Dict, List, Optional, Sequence
 
 # Component weights. Semantic similarity carries the most because it is the
 # only signal that reads the résumé as prose rather than as a bag of terms.
@@ -62,10 +62,10 @@ class FitScore:
     clarity: float
     level: LevelFit = field(default_factory=LevelFit)
     evidence_ratio: float = 1.0
-    unsupported_skills: List[str] = field(default_factory=list)
-    notes: List[str] = field(default_factory=list)
+    unsupported_skills: list[str] = field(default_factory=list)
+    notes: list[str] = field(default_factory=list)
 
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> dict:
         payload = asdict(self)
         payload["level"] = asdict(self.level)
         return payload
@@ -149,7 +149,7 @@ def compute_fit(
     required_years: int = 0,
     jd_text: str = "",
     evidence_ratio_value: float = 1.0,
-    unsupported: Optional[Sequence[str]] = None,
+    unsupported: Sequence[str] | None = None,
 ) -> FitScore:
     """Blend the components into the single number the user is shown."""
     # Damp clarity when nothing about the role matches.
@@ -163,7 +163,7 @@ def compute_fit(
     level = assess_level(detected_years, required_years, jd_text)
     overall = base * level.multiplier
 
-    notes: List[str] = []
+    notes: list[str] = []
     if level.note:
         notes.append(level.note)
 

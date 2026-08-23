@@ -14,6 +14,7 @@ from typing import Dict, Optional, Tuple
 
 from core import llm
 from core.config import settings
+from core.redact import redact_for_prompt
 from models.schemas import LLMEvaluation
 
 logger = logging.getLogger(__name__)
@@ -69,8 +70,14 @@ def _sanitize(text: str) -> str:
     return out
 
 
-def build_prompt(resume_text: str, job_description: str) -> str:
-    resume_excerpt = _sanitize(resume_text[:3500])
+def build_prompt(
+    resume_text: str,
+    job_description: str,
+    contact_info: Optional[dict] = None,
+) -> str:
+    # Identifiers are stripped before the text leaves this process. The model
+    # is judging skills and achievements; it has no use for a phone number.
+    resume_excerpt = _sanitize(redact_for_prompt(resume_text[:3500], contact_info))
     jd_excerpt = job_description[:1200]
 
     return f"""You are a senior ATS engineer and executive resume coach with 15 years of experience.
@@ -100,6 +107,7 @@ Scoring guidance:
 async def llm_master_evaluate(
     resume_text: str,
     job_description: str,
+    contact_info: Optional[dict] = None,
 ) -> Optional[LLMEvaluation]:
     """Evaluate a resume against a JD, with a short TTL cache.
 
@@ -118,12 +126,15 @@ async def llm_master_evaluate(
 
     try:
         result = await llm.complete_json(
-            build_prompt(resume_text, job_description),
+            build_prompt(resume_text, job_description, contact_info),
             LLMEvaluation,
             max_tokens=2000,
             temperature=0.1,
             schema_name="resume_evaluation",
         )
+    except llm.LLMPolicyError as exc:
+        logger.error("LLM evaluation blocked by account policy:\n%s", exc)
+        return None
     except llm.LLMError as exc:
         logger.error("LLM evaluation failed: %s", exc)
         return None

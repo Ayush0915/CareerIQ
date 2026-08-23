@@ -12,6 +12,7 @@ from typing import Dict, List, Optional
 from pydantic import BaseModel, Field
 
 from core import llm
+from core.redact import redact_for_prompt
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +47,7 @@ TARGET JOB DESCRIPTION:
 {job_description[:600]}
 
 RESUME EXCERPT (for context):
-{resume_text[:900]}
+{redact_for_prompt(resume_text)[:900]}
 
 Rewrite exactly 4 improved bullet points. Rules:
 - Start each with a strong past-tense action verb (Engineered, Architected, Spearheaded, Optimized)
@@ -83,7 +84,7 @@ JOB DESCRIPTION:
 {job_description[:700]}
 
 RESUME CONTEXT:
-{resume_text[:600]}
+{redact_for_prompt(resume_text)[:600]}
 
 Write a 3-paragraph cover letter. Rules:
 - Paragraph 1 (2-3 sentences): hook naming the specific role and the most relevant achievement
@@ -189,7 +190,7 @@ async def generate_linkedin_summary(
 
 Skills: {", ".join(matching_skills[:12])}
 Target role context: {job_description[:400]}
-Resume excerpt: {resume_text[:700]}
+Resume excerpt: {redact_for_prompt(resume_text)[:700]}
 
 Write a LinkedIn About section. Rules:
 - 3 short paragraphs, at most 220 words total
@@ -345,7 +346,7 @@ TARGET JOB DESCRIPTION:
 {job_description[:800] or "Software engineering role"}
 
 CANDIDATE RESUME SUMMARY:
-{resume_text[:800] or "Technical candidate seeking to upskill"}
+{redact_for_prompt(resume_text)[:800] or "Technical candidate seeking to upskill"}
 
 SKILL GAPS TO ADDRESS:
 {chr(10).join(context)}

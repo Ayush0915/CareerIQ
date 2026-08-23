@@ -69,6 +69,42 @@ class LLMError(RuntimeError):
     """Raised when every model, mode and retry has been exhausted."""
 
 
+class LLMPolicyError(LLMError):
+    """The account's privacy settings filtered out every endpoint.
+
+    Distinct from a capability mismatch: no amount of degrading the output mode
+    helps, because there is no endpoint to talk to at all. Failing fast with an
+    actionable message beats walking the whole ladder to arrive at the same
+    404 three times.
+    """
+
+
+# OpenRouter returns 404 with this shape when data-policy settings leave zero
+# eligible endpoints — most commonly on free models, which require consenting
+# to providers that may train on and publish request data.
+_POLICY_MARKERS = (
+    "data policy",
+    "guardrail restrictions",
+    "settings/privacy",
+)
+
+POLICY_HELP = (
+    "No endpoints matched your OpenRouter privacy settings.\n"
+    "Free models require enabling both of these at "
+    "https://openrouter.ai/settings/privacy :\n"
+    "  - Free endpoints that may train on request data\n"
+    "  - Free endpoints that may publish prompts\n"
+    "Those providers may train on, and may publish, what you send them. "
+    "Resume text is redacted before it leaves this process (see core/redact.py), "
+    "but if that trade is unacceptable, add credit and use paid endpoints instead."
+)
+
+
+def _looks_like_policy_block(error: Exception) -> bool:
+    text = str(error).lower()
+    return any(marker in text for marker in _POLICY_MARKERS)
+
+
 # ── Client ────────────────────────────────────────────────────────────────────
 
 _client: Optional[AsyncOpenAI] = None
@@ -237,6 +273,8 @@ async def _send(body: Dict[str, Any]) -> str:
             last_error = LLMError("Model returned an empty completion")
         except RETRYABLE as exc:
             last_error = exc
+            if _looks_like_policy_block(exc):
+                raise LLMPolicyError(POLICY_HELP) from exc
             if _looks_unsupported(exc):
                 raise  # do not burn retries on a capability mismatch
             logger.warning(
@@ -244,6 +282,8 @@ async def _send(body: Dict[str, Any]) -> str:
             )
         except Exception as exc:  # noqa: BLE001
             last_error = exc
+            if _looks_like_policy_block(exc):
+                raise LLMPolicyError(POLICY_HELP) from exc
             if _looks_unsupported(exc):
                 raise
             logger.warning("LLM attempt %d failed: %s", attempt + 1, exc)
@@ -333,6 +373,8 @@ async def complete_json(
                     body_prompt, chain, max_tokens, temperature, response_format, require_parameters
                 )
             )
+        except LLMPolicyError:
+            raise  # degrading cannot conjure an eligible endpoint
         except Exception as exc:  # noqa: BLE001
             last_error = exc
             if _looks_unsupported(exc) and mode != LADDER[-1]:

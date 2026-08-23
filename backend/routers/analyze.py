@@ -169,7 +169,7 @@ async def analyze_resume(
             # longer occupies a thread from the executor.  The two CPU-bound
             # helpers still go through the pool.
             llm_raw, exp_raw, section_raw = await asyncio.gather(
-                llm_master_evaluate(resume_raw, jd),
+                llm_master_evaluate(resume_raw, jd, contact_info),
                 _run_exp(),
                 _run_sections(),
                 return_exceptions=True,

@@ -204,6 +204,51 @@ Write a LinkedIn About section. Rules:
     return await _safe_text(prompt, max_tokens=400)
 
 
+# ── Dispatcher ────────────────────────────────────────────────────────────────
+
+# One call per requested mode, generated on demand.  The previous design fired
+# all five concurrently on every visit to the tab, which on the free tier burns
+# five of roughly twenty requests per minute for output the user may not read.
+COACHING_MODES = ("bullets", "cover_letter", "roadmap", "interview", "linkedin")
+
+MODE_LABELS = {
+    "bullets": "Improved bullet points",
+    "cover_letter": "Cover letter",
+    "roadmap": "30-day skill roadmap",
+    "interview": "Interview prep",
+    "linkedin": "LinkedIn summary",
+}
+
+
+async def generate_one(
+    mode: str,
+    *,
+    weak_phrases: Optional[List[str]] = None,
+    matching_skills: Optional[List[str]] = None,
+    missing_skills: Optional[List[str]] = None,
+    job_description: str = "",
+    resume_text: str = "",
+    experience_level: str = "mid",
+) -> str:
+    """Generate exactly one coaching artefact."""
+    weak = weak_phrases or []
+    matching = matching_skills or []
+    missing = missing_skills or []
+
+    if mode == "bullets":
+        return await rewrite_bullets(weak, resume_text, job_description)
+    if mode == "cover_letter":
+        return await generate_cover_letter(matching, missing, job_description, resume_text)
+    if mode == "roadmap":
+        return await generate_skill_roadmap(missing, job_description)
+    if mode == "interview":
+        return await generate_interview_prep(matching, missing, job_description, experience_level)
+    if mode == "linkedin":
+        return await generate_linkedin_summary(matching, resume_text, job_description)
+
+    raise ValueError(f"Unknown coaching mode {mode!r}; expected one of {COACHING_MODES}")
+
+
 # ── Course recommendations ────────────────────────────────────────────────────
 
 class CourseRecommendation(BaseModel):

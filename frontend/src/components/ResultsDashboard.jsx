@@ -4,13 +4,14 @@ import ScoreSidebar from './dashboard/ScoreSidebar'
 import ScoreFitTab from './dashboard/OverviewTab'
 import GapsATSTab from './dashboard/SkillsTab'
 
-// Lazy-loaded tab components for code splitting & faster initial page load
+// Lazy-loaded tab components for code splitting & faster initial page load.
+// ATSBreakdown was listed here too, but SkillsTab imports it statically, so the
+// lazy wrapper did nothing except imply the bundle was smaller than it was.
+// LLMInsights was lazy-imported and never rendered at all — now deleted.
 const JobRecommendations = lazy(() => import('./JobRecommendations'))
 const CourseRecommendations = lazy(() => import('./CourseRecommendations'))
 const InterviewPrep = lazy(() => import('./InterviewPrep'))
 const AICoach = lazy(() => import('./AICoach'))
-const ATSBreakdown = lazy(() => import('./ATSBreakdown'))
-const LLMInsights = lazy(() => import('./LLMInsights'))
 
 const TABS = [
   { id:'score_fit',  label:'Score & Fit', icon:BarChart3, ariaLabel:'Score and fit analysis tab' },

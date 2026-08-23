@@ -33,23 +33,27 @@ class Settings(BaseSettings):
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
     app_url: str = "https://github.com/Ayush0915/CareerIQ"
 
-    # Model IDs change and get deprecated — do not trust a hardcoded default.
-    # Run `python scripts/check_models.py` to list currently available models
-    # that support structured outputs, then set these in .env.
+    # Defaults are FREE-tier models (":free" suffix = $0 in and out).
     #
-    # Selection criteria, in order:
-    #   1. Must appear under supported_parameters=structured_outputs
-    #   2. Prefer models served by several providers (so failover has somewhere
-    #      to go)
-    #   3. Choose on schema-conformance rate, not price — at this payload size
-    #      the spread between cheapest and premium is a couple of dollars a
-    #      month
-    primary_model: str = "deepseek/deepseek-chat"
-    fallback_models: str = "google/gemini-flash-1.5,openai/gpt-4o-mini"
-    # Cheaper chain for the generative coaching features, where the quality bar
-    # is lower and the volume is higher.
-    fast_primary_model: str = "google/gemini-flash-1.5"
-    fast_fallback_models: str = "openai/gpt-4o-mini"
+    # Model IDs churn constantly — run `python scripts/check_models.py --free`
+    # to see what is actually live before trusting these.
+    #
+    # Important constraint on the free tier: almost no free model supports
+    # schema-enforced output. core.llm negotiates downwards automatically
+    # (strict schema -> JSON mode -> prompt-only) so this still works, but the
+    # output is validated rather than guaranteed. Free models are also rate
+    # limited to roughly 20 requests/minute and 200/day per account, and may be
+    # withdrawn without notice.
+    primary_model: str = "dots-studio/dots-3-note-preview:free"
+    fallback_models: str = "nvidia/nemotron-3-super:free,z-ai/glm-5.2:free"
+    # Chain for the generative coaching features, where the quality bar is
+    # lower and the call volume is higher.
+    fast_primary_model: str = "nvidia/nemotron-3.5-lightning:free"
+    fast_fallback_models: str = "google/gemma-4-26b-a4b:free"
+
+    # How to request JSON: "auto" walks the ladder and remembers what worked.
+    # Force a rung with "strict", "json_object" or "prompt".
+    structured_output_mode: str = "auto"
 
     llm_timeout_s: float = 60.0
     llm_max_retries: int = 3
@@ -99,6 +103,18 @@ class Settings(BaseSettings):
         if value not in allowed:
             raise ValueError(f"environment must be one of {sorted(allowed)}")
         return value
+
+    @field_validator("structured_output_mode")
+    @classmethod
+    def _known_output_mode(cls, value: str) -> str:
+        allowed = {"auto", "strict", "json_object", "prompt"}
+        if value not in allowed:
+            raise ValueError(f"structured_output_mode must be one of {sorted(allowed)}")
+        return value
+
+    @property
+    def using_free_models(self) -> bool:
+        return all(m.endswith(":free") for m in self.model_chain)
 
     @property
     def max_file_size_bytes(self) -> int:

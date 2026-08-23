@@ -42,6 +42,15 @@ async def lifespan(app: FastAPI):
             ", ".join(missing),
         )
 
+    if settings.using_free_models:
+        logger.info(
+            "Free-tier models configured (%s). Expect ~20 requests/minute and "
+            "~200/day per account; one analysis is 1 call and the AI Coach "
+            "bundle is 5. Schema enforcement is negotiated per model — see "
+            "core/llm.py.",
+            settings.primary_model,
+        )
+
     if settings.warm_up_embeddings:
         try:
             from services.similarity import EMBEDDING_MODEL, warm_up

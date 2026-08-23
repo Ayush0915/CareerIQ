@@ -29,7 +29,7 @@ __pycache__/
 *.db
 
 # =========================
-# 🐳 DOCKER
+# 🧾 LOGS
 # =========================
 *.log
 vite.config.js.timestamp-*
@@ -47,6 +47,7 @@ vite.config.js.timestamp-*
 # Files superseded during the upgrade. This environment cannot delete files
 # on disk, so they are moved here instead — safe to remove the folder.
 _to_delete/
+_local_removed/
 
 # =========================
 # 💻 IDE / OS

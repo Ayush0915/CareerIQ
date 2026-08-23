@@ -163,12 +163,22 @@ def main() -> int:
 
     show(models, args.limit)
 
-    if not args.all:
-        print("These support structured outputs. Verify your pick with:")
-        print("    python scripts/check_models.py --probe <MODEL_ID>\n")
-        print("Free models are fine for development but are rate limited")
-        print("(~20/min, ~200/day) and may be withdrawn without notice — do")
-        print("not put one in the primary slot for anything real.\n")
+    free_total = len([m for m in fetch_models() if estimated_cost(m) == 0])
+    free_structured = len(
+        [m for m in fetch_models() if estimated_cost(m) == 0 and supports_structured(m)]
+    )
+
+    print("Verify a pick with:")
+    print("    python scripts/check_models.py --probe <MODEL_ID>\n")
+    print(f"Free models available: {free_total}")
+    print(f"  ...of which support structured outputs: {free_structured}\n")
+    if free_structured == 0:
+        print("No free model currently enforces JSON schemas. That is fine —")
+        print("core/llm.py degrades to JSON mode and then to prompt-only, and")
+        print("validates the result either way. Set STRUCTURED_OUTPUT_MODE=prompt")
+        print("to skip the negotiation entirely.\n")
+    print("Free tier is ~20 requests/minute and ~200/day, and models can be")
+    print("withdrawn without notice — always keep two fallbacks configured.\n")
     return 0
 
 

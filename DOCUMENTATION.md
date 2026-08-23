@@ -224,7 +224,7 @@ Fetches real-time matching jobs.
 
 ### Architecture Strategy
 - **Frontend (Vite + React)**: Deployed to **Vercel** for ultra-fast CDN delivery.
-- **Backend (FastAPI)**: Deployed to **Render / Koyeb** (Docker or Python Web Service).
+- **Backend (FastAPI)**: Deployed to **Render / Koyeb** as a plain Python Web Service (no containers).
 
 ---
 
@@ -237,7 +237,7 @@ Fetches real-time matching jobs.
 4. Set configurations:
    - **Root Directory**: `backend`
    - **Environment**: `Python 3`
-   - **Build Command**: `uv pip install --system -r pyproject.toml`
+   - **Build Command**: `uv pip install --system -r pyproject.toml && python scripts/prefetch_model.py`
    - **Start Command**: `uvicorn main:app --host 0.0.0.0 --port $PORT --workers 1`
 5. Add Environment Variables:
    - `OPENROUTER_API_KEY`: `your_key`

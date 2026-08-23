@@ -152,6 +152,49 @@ class TestDataset:
             ordered = [grades[i] for i in case.ideal_order()]
             assert ordered == sorted(ordered, reverse=True)
 
+    def test_equivalent_pairs_reference_real_candidates(self):
+        from evals.dataset import load_cases
+
+        for case in load_cases():
+            ids = {c.id for c in case.candidates}
+            for pair in case.equivalent_pairs:
+                assert len(pair) == 2, f"{case.id}: pairs must have exactly two ids"
+                for candidate_id in pair:
+                    assert candidate_id in ids, f"{case.id}: unknown id {candidate_id}"
+
+    def test_equivalent_pairs_share_a_relevance_grade(self):
+        """Two candidates declared equivalent must be graded the same, or the
+        equivalence check would be asserting something the labels contradict."""
+        from evals.dataset import load_cases
+
+        for case in load_cases():
+            grades = case.relevance_by_id()
+            for left, right in case.equivalent_pairs:
+                assert grades[left] == grades[right], (
+                    f"{case.id}: {left} and {right} are declared equivalent but "
+                    f"graded {grades[left]} and {grades[right]}"
+                )
+
+    def test_stress_categories_are_known(self):
+        from evals.dataset import load_cases
+
+        known = {
+            "", "vocabulary", "keyword_stuffing", "career_change",
+            "overqualification", "near_tie", "mangled_extraction",
+        }
+        for case in load_cases():
+            assert case.stress in known, f"{case.id}: unknown stress {case.stress!r}"
+
+    def test_dataset_is_large_enough_to_discriminate(self):
+        """A saturated benchmark cannot show improvement. Phase 5 needs enough
+        contestable cases that a perfect score is not the default."""
+        from evals.dataset import load_cases, summary
+
+        stats = summary(load_cases())
+        assert stats["candidates"] >= 40, "expand the eval set before Phase 5"
+        stressed = [c for c in load_cases() if c.stress]
+        assert len(stressed) >= 5, "need several distinct failure modes covered"
+
 
 class TestParseRecall:
     def test_fixtures_score(self):

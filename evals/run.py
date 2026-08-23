@@ -63,10 +63,29 @@ def evaluate(cases: List[EvalCase]) -> Dict:
     ndcg_5, ndcg_10, rbos, spearmans = [], [], [], []
     skill_f1, missing_f1 = [], []
     per_case = []
+    by_stress: Dict[str, List[float]] = {}
+    equivalence: List[Dict] = []
 
     for case in cases:
         rows = score_candidates(case, skills)
         ranked = sorted(rows, key=lambda r: -r["combined"])
+        scores_by_id = {r["id"]: r["combined"] for r in rows}
+
+        # Pairs that describe the same fit must land on the same score. A gap
+        # here means the system is keying on surface form, not substance —
+        # which the ranking metrics can hide entirely if the order comes out
+        # right anyway.
+        for pair in case.equivalent_pairs:
+            if len(pair) != 2 or not all(p in scores_by_id for p in pair):
+                continue
+            left, right = scores_by_id[pair[0]], scores_by_id[pair[1]]
+            equivalence.append({
+                "case": case.id,
+                "stress": case.stress,
+                "pair": pair,
+                "scores": [round(left, 2), round(right, 2)],
+                "gap": round(abs(left - right), 2),
+            })
 
         predicted_relevances = [r["relevance"] for r in ranked]
         case_ndcg5 = metrics.ndcg(predicted_relevances, k=5)
@@ -87,9 +106,12 @@ def evaluate(cases: List[EvalCase]) -> Dict:
             if row["expected_missing"]:
                 missing_f1.append(metrics.prf(row["missing"], row["expected_missing"])["f1"])
 
+        by_stress.setdefault(case.stress or "general", []).append(case_ndcg5)
+
         per_case.append({
             "id": case.id,
             "job_title": case.job_title,
+            "stress": case.stress or "general",
             "ndcg@5": round(case_ndcg5, 4),
             "rbo": round(case_rbo, 4),
             "spearman": round(case_spearman, 4),
@@ -104,6 +126,15 @@ def evaluate(cases: List[EvalCase]) -> Dict:
             "ndcg@10": round(metrics.mean(ndcg_10), 4),
             "rbo": round(metrics.mean(rbos), 4),
             "spearman": round(metrics.mean(spearmans), 4),
+        },
+        "by_stress": {
+            name: round(metrics.mean(values), 4) for name, values in sorted(by_stress.items())
+        },
+        "equivalence": {
+            "pairs_checked": len(equivalence),
+            "max_gap": round(max((e["gap"] for e in equivalence), default=0.0), 2),
+            "mean_gap": round(metrics.mean([e["gap"] for e in equivalence]), 2),
+            "detail": sorted(equivalence, key=lambda e: -e["gap"]),
         },
         "extraction": {
             "skill_f1": round(metrics.mean(skill_f1), 4),
@@ -164,6 +195,23 @@ def render(report: Dict) -> str:
     add("  RANKING")
     for name, value in report["ranking"].items():
         add(f"    {name:<22} {value:.4f}")
+
+    add("")
+    add("  RANKING BY STRESS TYPE          ndcg@5")
+    for name, value in report["by_stress"].items():
+        flag = "   <-- weakest" if value == min(report["by_stress"].values()) else ""
+        add(f"    {name:<28} {value:.4f}{flag}")
+
+    equivalence = report["equivalence"]
+    if equivalence["pairs_checked"]:
+        add("")
+        add("  EQUIVALENCE (pairs that describe the same fit)")
+        add(f"    {'pairs checked':<28} {equivalence['pairs_checked']}")
+        add(f"    {'mean score gap':<28} {equivalence['mean_gap']:.2f}")
+        add(f"    {'worst score gap':<28} {equivalence['max_gap']:.2f}")
+        for item in equivalence["detail"][:3]:
+            add(f"      {item['pair'][0]} {item['scores'][0]:.1f}  vs  "
+                f"{item['pair'][1]} {item['scores'][1]:.1f}   gap {item['gap']:.1f}  [{item['stress']}]")
 
     add("")
     add("  SKILL EXTRACTION")

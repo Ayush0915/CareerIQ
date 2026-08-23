@@ -49,6 +49,24 @@ class EvalCase(BaseModel):
     jd_text: str
     candidates: List[Candidate]
 
+    stress: str = Field(
+        default="",
+        description=(
+            "Which failure mode this case probes — vocabulary, keyword_stuffing, "
+            "career_change, overqualification, near_tie, mangled_extraction. "
+            "Empty means a general case."
+        ),
+    )
+    equivalent_pairs: List[List[str]] = Field(
+        default_factory=list,
+        description=(
+            "Candidate id pairs that describe substantively the same fit and so "
+            "should receive near-identical scores. A large gap is a defect even "
+            "when the ranking order happens to come out right — it means the "
+            "system is keying on surface form rather than substance."
+        ),
+    )
+
     def ideal_order(self) -> List[str]:
         return [c.id for c in sorted(self.candidates, key=lambda c: -c.relevance)]
 

@@ -1,47 +1,81 @@
-import os
 import asyncio
-import shutil
-import tempfile
-import logging
-import time
 import json
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Request
-from fastapi.responses import StreamingResponse
-from main import limiter
-from models.schemas import AnalysisResponse, TopMatch, LLMEvaluation, SectionScores, KeywordAnalysis, ExperienceInfo
+import logging
+import os
+import tempfile
+import time
 
-from typing import Optional
-from services.parser import parse_resume, extract_text_from_pdf, extract_text_from_docx
-from services.skill_extractor import load_skills, extract_skills_from_text
-from services.similarity import calculate_similarity
-from services.recommender import calculate_keyword_coverage, get_missing_skills, get_matching_skills, generate_feedback
-from services.skill_gap_analyzer import classify_skill_gaps
-from services.signal_noise_analyzer import analyze_signal_to_noise
-from services.llm_evaluator import llm_master_evaluate
-from services.experience_detector import detect_experience
-from services.section_parser import parse_sections, score_sections
+from core.config import settings
+from core.limiter import limiter
+from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
+from fastapi.responses import StreamingResponse
+from models.schemas import (
+    AnalysisResponse,
+    ExperienceInfo,
+    FitBreakdown,
+    LLMEvaluation,
+    TopMatch,
+)
 from services.ats_simulator import simulate_ats
+from services.evidence import (
+    evidence_ratio,
+    gather_evidence,
+    unsupported_skills,
+    weighted_coverage,
+)
+from services.experience_detector import detect_experience
+from services.llm_evaluator import llm_master_evaluate
+from services.parser import extract_text_from_docx, extract_text_from_pdf, parse_resume
+from services.recommender import (
+    generate_feedback,
+    get_matching_skills,
+    get_missing_skills,
+)
+from services.scoring import compute_fit
+from services.section_parser import parse_sections, score_sections
+from services.signal_noise_analyzer import analyze_signal_to_noise
+from services.similarity import calculate_similarity
+from services.skill_extractor import extract_skills_from_text, load_skills
+from services.skill_gap_analyzer import classify_skill_gaps
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
-MAX_FILE_SIZE  = 5 * 1024 * 1024   # 5 MB
-MAX_JD_LENGTH  = 8000
+MAX_FILE_SIZE  = settings.max_file_size_bytes
+MAX_JD_LENGTH  = settings.max_jd_length
 
 
 def _run_sync(fn, *args):
     """Run a synchronous function in the default thread pool (non-blocking)."""
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     return loop.run_in_executor(None, fn, *args)
 
 
-@router.post("/analyze")
-@limiter.limit("5/minute")
+@router.post(
+    "/analyze",
+    # The route returns a StreamingResponse, so FastAPI cannot infer the
+    # payload shape and AnalysisResponse was absent from the OpenAPI schema
+    # entirely — which meant no generated client types for the one endpoint
+    # that matters. Declaring it here documents the `complete` event body.
+    responses={
+        200: {
+            "description": (
+                "Server-sent events. Each line is `data: {...}` carrying either "
+                "`{event: 'progress', progress, message}`, "
+                "`{event: 'complete', progress: 100, result: AnalysisResponse}`, "
+                "or `{event: 'error', message}`."
+            ),
+            "model": AnalysisResponse,
+            "content": {"text/event-stream": {}},
+        }
+    },
+)
+@limiter.limit(settings.rate_limit)
 async def analyze_resume(
     request: Request,
     file: UploadFile = File(...),
-    job_description: Optional[str] = Form(""),
-    job_description_file: Optional[UploadFile] = File(None),
+    job_description: str | None = Form(""),
+    job_description_file: UploadFile | None = File(None),
 ):
     t0 = time.perf_counter()
 
@@ -114,7 +148,6 @@ async def analyze_resume(
                 return
 
             resume_raw   = parse_result["raw_text"]
-            resume_clean = parse_result["clean_text"]
             contact_info = parse_result.get("contact_info", {})
             word_count   = parse_result.get("word_count", 0)
 
@@ -127,8 +160,11 @@ async def analyze_resume(
             await asyncio.sleep(0.01)
 
             # ── Phase 2: Skill extraction ────────────────────────────────────
+            # Both sides are passed RAW: extract_skills_from_text normalizes
+            # internally, so the resume and the JD can never be normalized
+            # differently again.
             skills_list   = load_skills()
-            resume_skills = extract_skills_from_text(resume_clean, skills_list)
+            resume_skills = extract_skills_from_text(resume_raw, skills_list)
             jd_skills     = extract_skills_from_text(jd, skills_list)
 
             # Emit Phase 2 Progress Event (50%)
@@ -136,7 +172,11 @@ async def analyze_resume(
             await asyncio.sleep(0.01)
 
             # ── Phase 3: Similarity & ATS calculation ───────────────────────
-            keyword_score = calculate_keyword_coverage(resume_skills, jd_skills)
+            # Evidence-weighted coverage: a skill demonstrated in an
+            # experience bullet counts for far more than the same word sitting
+            # in a comma-separated list.
+            evidence = gather_evidence(resume_raw, skills_list)
+            keyword_score = weighted_coverage(evidence, jd_skills)
             sim           = calculate_similarity(resume_raw, jd)
             missing       = get_missing_skills(resume_skills, jd_skills)
             matching      = get_matching_skills(resume_skills, jd_skills)
@@ -154,9 +194,6 @@ async def analyze_resume(
             experience_info       = None
             section_scores_result = None
 
-            async def _run_llm():
-                return await _run_sync(llm_master_evaluate, resume_raw, jd)
-
             async def _run_exp():
                 return await _run_sync(detect_experience, resume_raw, jd)
 
@@ -164,49 +201,45 @@ async def analyze_resume(
                 sections = await _run_sync(parse_sections, resume_raw)
                 return await _run_sync(score_sections, sections)
 
-            try:
-                llm_raw, exp_raw, section_raw = await asyncio.gather(
-                    _run_llm(), _run_exp(), _run_sections(),
-                    return_exceptions=True
-                )
+            # The LLM call is awaited directly — it is network-bound, so it no
+            # longer occupies a thread from the executor.  The two CPU-bound
+            # helpers still go through the pool.
+            llm_raw, exp_raw, section_raw = await asyncio.gather(
+                llm_master_evaluate(resume_raw, jd, contact_info),
+                _run_exp(),
+                _run_sections(),
+                return_exceptions=True,
+            )
 
-                if isinstance(llm_raw, dict) and "overall_score" in llm_raw:
-                    llm_result = LLMEvaluation(
-                        overall_score            = llm_raw.get("overall_score",   0),
-                        experience_level         = llm_raw.get("experience_level","unknown"),
-                        years_detected           = str(llm_raw.get("years_detected","unknown")),
-                        section_scores           = SectionScores(**{
-                            k: llm_raw.get("section_scores", {}).get(k, 0)
-                            for k in ["experience","skills","education","projects","summary"]
-                        }),
-                        keyword_analysis         = KeywordAnalysis(**{
-                            k: llm_raw.get("keyword_analysis",{}).get(k, [])
-                            for k in ["present","missing_critical","missing_recommended"]
-                        }),
-                        grammar_issues           = llm_raw.get("grammar_issues",    []),
-                        cliches_found            = llm_raw.get("cliches_found",     []),
-                        readability_score        = llm_raw.get("readability_score",  0),
-                        passive_voice_count      = llm_raw.get("passive_voice_count",0),
-                        quantified_achievements  = llm_raw.get("quantified_achievements",0),
-                        section_feedback         = llm_raw.get("section_feedback",  {}),
-                        top_improvements         = llm_raw.get("top_improvements",  []),
-                        ats_compatibility        = llm_raw.get("ats_compatibility",  0),
-                        job_match_reasoning      = llm_raw.get("job_match_reasoning",""),
-                        interview_questions      = llm_raw.get("interview_questions",[]),
-                        resume_strengths         = llm_raw.get("resume_strengths",  []),
-                        salary_insight           = llm_raw.get("salary_insight",    ""),
-                        competition_level        = llm_raw.get("competition_level", "medium"),
-                        fit_verdict              = llm_raw.get("fit_verdict",       "unknown"),
-                    )
+            # llm_master_evaluate returns a validated LLMEvaluation or None; a
+            # provider-enforced schema means there is nothing left to coerce.
+            if isinstance(llm_raw, LLMEvaluation):
+                llm_result = llm_raw
+            elif isinstance(llm_raw, Exception):
+                logger.warning("LLM evaluation failed: %s", llm_raw)
 
-                if isinstance(exp_raw, dict):
-                    experience_info = ExperienceInfo(**exp_raw)
+            if isinstance(exp_raw, dict):
+                experience_info = ExperienceInfo(**exp_raw)
+            elif isinstance(exp_raw, Exception):
+                logger.warning("Experience detection failed: %s", exp_raw)
 
-                if isinstance(section_raw, dict):
-                    section_scores_result = section_raw
+            if isinstance(section_raw, dict):
+                section_scores_result = section_raw
+            elif isinstance(section_raw, Exception):
+                logger.warning("Section scoring failed: %s", section_raw)
 
-            except Exception as ai_err:
-                logger.warning(f"AI evaluation partial failure: {ai_err}")
+            # One scoring function, shared with the evaluation harness, so the
+            # number measured offline is the number the user is shown.
+            fit = compute_fit(
+                semantic_score=sim["final_score"],
+                coverage_score=keyword_score,
+                clarity_score=signal.get("clarity_score", 0.0),
+                detected_years=(experience_info.detected_years if experience_info else 0),
+                required_years=(experience_info.required_years if experience_info else 0),
+                jd_text=jd,
+                evidence_ratio_value=evidence_ratio(evidence),
+                unsupported=unsupported_skills(evidence),
+            )
 
             elapsed = round(time.perf_counter() - t0, 2)
             logger.info(f"Analysis complete in {elapsed}s | skills={len(resume_skills)} | score={sim['final_score']}")
@@ -227,6 +260,7 @@ async def analyze_resume(
                 experience_info       = experience_info,
                 section_scores        = section_scores_result,
                 ats_simulation        = ats_sim,
+                fit                   = FitBreakdown(**fit.to_dict()),
                 contact_info          = contact_info,
                 word_count            = word_count,
                 processing_time_s     = elapsed,

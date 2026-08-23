@@ -1,0 +1,1201 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "CareerIQ API",
+    "description": "AI-powered resume analysis, scoring, and coaching platform.",
+    "version": "4.1.0"
+  },
+  "paths": {
+    "/api/v1/analyze": {
+      "post": {
+        "tags": [
+          "Analysis"
+        ],
+        "summary": "Analyze Resume",
+        "operationId": "analyze_resume_api_v1_analyze_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_analyze_resume_api_v1_analyze_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Server-sent events. Each line is `data: {...}` carrying either `{event: 'progress', progress, message}`, `{event: 'complete', progress: 100, result: AnalysisResponse}`, or `{event: 'error', message}`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalysisResponse"
+                }
+              },
+              "text/event-stream": {}
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai-coach/modes": {
+      "get": {
+        "tags": [
+          "AI Coach",
+          "AI Coach"
+        ],
+        "summary": "List Modes",
+        "description": "What the client can ask for, so the UI is not hardcoded to the server.",
+        "operationId": "list_modes_api_v1_ai_coach_modes_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai-coach/generate": {
+      "post": {
+        "tags": [
+          "AI Coach"
+        ],
+        "summary": "Generate",
+        "description": "Generate one coaching artefact.",
+        "operationId": "generate_api_v1_ai_coach_generate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CoachingRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoachingResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai-coach/course-recommendations": {
+      "post": {
+        "tags": [
+          "AI Coach"
+        ],
+        "summary": "Course Recommendations Endpoint",
+        "description": "Personalized learning resources for the detected skill gaps.",
+        "operationId": "course_recommendations_endpoint_api_v1_ai_coach_course_recommendations_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CourseRecommendationsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/jobs": {
+      "post": {
+        "tags": [
+          "Jobs"
+        ],
+        "summary": "Get Job Recommendations",
+        "operationId": "get_job_recommendations_api_v1_jobs_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JobSearchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": [
+          "System"
+        ],
+        "summary": "Health Check",
+        "operationId": "health_check_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/usage-stats": {
+      "get": {
+        "tags": [
+          "System"
+        ],
+        "summary": "Get Usage Stats",
+        "description": "Today's request count for /analyze and /ai-coach endpoints.",
+        "operationId": "get_usage_stats_api_v1_usage_stats_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/capabilities": {
+      "get": {
+        "tags": [
+          "System"
+        ],
+        "summary": "Capabilities",
+        "description": "List all available API features.",
+        "operationId": "capabilities_api_v1_capabilities_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ATSSimulation": {
+        "properties": {
+          "overall_ats_score": {
+            "type": "number",
+            "title": "Overall Ats Score"
+          },
+          "checks": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Checks"
+          },
+          "top_issues": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Top Issues"
+          },
+          "verdict": {
+            "type": "string",
+            "title": "Verdict"
+          }
+        },
+        "type": "object",
+        "required": [
+          "overall_ats_score",
+          "checks",
+          "top_issues",
+          "verdict"
+        ],
+        "title": "ATSSimulation"
+      },
+      "AnalysisResponse": {
+        "properties": {
+          "semantic_match_score": {
+            "type": "number",
+            "title": "Semantic Match Score"
+          },
+          "ats_keyword_score": {
+            "type": "number",
+            "title": "Ats Keyword Score"
+          },
+          "resume_skills": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Resume Skills"
+          },
+          "jd_skills": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Jd Skills"
+          },
+          "matching_skills": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Matching Skills"
+          },
+          "missing_skills": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Missing Skills"
+          },
+          "top_matches": {
+            "items": {
+              "$ref": "#/components/schemas/TopMatch"
+            },
+            "type": "array",
+            "title": "Top Matches"
+          },
+          "skill_gap_analysis": {
+            "$ref": "#/components/schemas/SkillGapAnalysis"
+          },
+          "signal_noise": {
+            "$ref": "#/components/schemas/SignalNoiseResult"
+          },
+          "feedback": {
+            "type": "string",
+            "title": "Feedback"
+          },
+          "total_skills_detected": {
+            "type": "integer",
+            "title": "Total Skills Detected"
+          },
+          "llm_evaluation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LLMEvaluation"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "experience_info": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExperienceInfo"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "section_scores": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "number"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Section Scores"
+          },
+          "ats_simulation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ATSSimulation"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "fit": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FitBreakdown"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "contact_info": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contact Info"
+          },
+          "word_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Word Count"
+          },
+          "processing_time_s": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Processing Time S"
+          },
+          "job_description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Job Description",
+            "default": ""
+          },
+          "resume_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resume Text",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "semantic_match_score",
+          "ats_keyword_score",
+          "resume_skills",
+          "jd_skills",
+          "matching_skills",
+          "missing_skills",
+          "top_matches",
+          "skill_gap_analysis",
+          "signal_noise",
+          "feedback",
+          "total_skills_detected"
+        ],
+        "title": "AnalysisResponse"
+      },
+      "Body_analyze_resume_api_v1_analyze_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File"
+          },
+          "job_description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Job Description",
+            "default": ""
+          },
+          "job_description_file": {
+            "anyOf": [
+              {
+                "type": "string",
+                "contentMediaType": "application/octet-stream"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Job Description File"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_analyze_resume_api_v1_analyze_post"
+      },
+      "CoachingRequest": {
+        "properties": {
+          "mode": {
+            "type": "string",
+            "title": "Mode",
+            "description": "One of: bullets, cover_letter, roadmap, interview, linkedin"
+          },
+          "weak_phrases": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Weak Phrases",
+            "default": []
+          },
+          "matching_skills": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Matching Skills",
+            "default": []
+          },
+          "missing_skills": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Missing Skills",
+            "default": []
+          },
+          "job_description": {
+            "type": "string",
+            "title": "Job Description",
+            "default": ""
+          },
+          "resume_text": {
+            "type": "string",
+            "title": "Resume Text",
+            "default": ""
+          },
+          "experience_level": {
+            "type": "string",
+            "title": "Experience Level",
+            "default": "mid"
+          }
+        },
+        "type": "object",
+        "required": [
+          "mode"
+        ],
+        "title": "CoachingRequest",
+        "description": "One coaching artefact, generated on demand.\n\nReplaces the five-call bundle. That fired every generator on every visit to\nthe tab, which costs five of roughly twenty free requests per minute for\noutput the user may never scroll to."
+      },
+      "CoachingResponse": {
+        "properties": {
+          "mode": {
+            "type": "string",
+            "title": "Mode"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "content": {
+            "type": "string",
+            "title": "Content"
+          }
+        },
+        "type": "object",
+        "required": [
+          "mode",
+          "label",
+          "content"
+        ],
+        "title": "CoachingResponse"
+      },
+      "CourseRecommendationsRequest": {
+        "properties": {
+          "skill_gap_analysis": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Skill Gap Analysis"
+          },
+          "critical": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Critical",
+            "default": []
+          },
+          "important": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Important",
+            "default": []
+          },
+          "optional": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Optional",
+            "default": []
+          },
+          "job_description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Job Description",
+            "default": ""
+          },
+          "resume_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resume Text",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "title": "CourseRecommendationsRequest"
+      },
+      "ExperienceInfo": {
+        "properties": {
+          "detected_years": {
+            "type": "integer",
+            "title": "Detected Years"
+          },
+          "required_years": {
+            "type": "integer",
+            "title": "Required Years"
+          },
+          "level": {
+            "type": "string",
+            "title": "Level"
+          },
+          "meets_requirement": {
+            "type": "boolean",
+            "title": "Meets Requirement"
+          },
+          "gap_years": {
+            "type": "integer",
+            "title": "Gap Years"
+          }
+        },
+        "type": "object",
+        "required": [
+          "detected_years",
+          "required_years",
+          "level",
+          "meets_requirement",
+          "gap_years"
+        ],
+        "title": "ExperienceInfo"
+      },
+      "FitBreakdown": {
+        "properties": {
+          "overall": {
+            "type": "number",
+            "title": "Overall"
+          },
+          "semantic": {
+            "type": "number",
+            "title": "Semantic"
+          },
+          "coverage": {
+            "type": "number",
+            "title": "Coverage"
+          },
+          "clarity": {
+            "type": "number",
+            "title": "Clarity"
+          },
+          "level": {
+            "$ref": "#/components/schemas/LevelFitInfo"
+          },
+          "evidence_ratio": {
+            "type": "number",
+            "title": "Evidence Ratio",
+            "default": 1.0
+          },
+          "unsupported_skills": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Unsupported Skills",
+            "default": []
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Notes",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "overall",
+          "semantic",
+          "coverage",
+          "clarity",
+          "level"
+        ],
+        "title": "FitBreakdown",
+        "description": "The score the user sees, and what produced it."
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "JobSearchRequest": {
+        "properties": {
+          "skills": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Skills"
+          },
+          "location": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Location",
+            "default": "India"
+          }
+        },
+        "type": "object",
+        "required": [
+          "skills"
+        ],
+        "title": "JobSearchRequest"
+      },
+      "KeywordAnalysis": {
+        "properties": {
+          "present": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Present"
+          },
+          "missing_critical": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Missing Critical"
+          },
+          "missing_recommended": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Missing Recommended"
+          }
+        },
+        "type": "object",
+        "required": [
+          "present",
+          "missing_critical",
+          "missing_recommended"
+        ],
+        "title": "KeywordAnalysis"
+      },
+      "LLMEvaluation": {
+        "properties": {
+          "overall_score": {
+            "type": "number",
+            "title": "Overall Score"
+          },
+          "experience_level": {
+            "type": "string",
+            "title": "Experience Level"
+          },
+          "years_detected": {
+            "type": "string",
+            "title": "Years Detected"
+          },
+          "section_scores": {
+            "$ref": "#/components/schemas/SectionScores"
+          },
+          "keyword_analysis": {
+            "$ref": "#/components/schemas/KeywordAnalysis"
+          },
+          "grammar_issues": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Grammar Issues"
+          },
+          "cliches_found": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Cliches Found"
+          },
+          "readability_score": {
+            "type": "number",
+            "title": "Readability Score"
+          },
+          "passive_voice_count": {
+            "type": "integer",
+            "title": "Passive Voice Count"
+          },
+          "quantified_achievements": {
+            "type": "integer",
+            "title": "Quantified Achievements"
+          },
+          "section_feedback": {
+            "$ref": "#/components/schemas/SectionFeedback"
+          },
+          "top_improvements": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Top Improvements"
+          },
+          "ats_compatibility": {
+            "type": "number",
+            "title": "Ats Compatibility"
+          },
+          "job_match_reasoning": {
+            "type": "string",
+            "title": "Job Match Reasoning"
+          },
+          "interview_questions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Interview Questions"
+          },
+          "resume_strengths": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Resume Strengths"
+          },
+          "salary_insight": {
+            "type": "string",
+            "title": "Salary Insight"
+          },
+          "competition_level": {
+            "type": "string",
+            "title": "Competition Level"
+          },
+          "fit_verdict": {
+            "type": "string",
+            "title": "Fit Verdict"
+          }
+        },
+        "type": "object",
+        "required": [
+          "overall_score",
+          "experience_level",
+          "years_detected",
+          "section_scores",
+          "keyword_analysis",
+          "grammar_issues",
+          "cliches_found",
+          "readability_score",
+          "passive_voice_count",
+          "quantified_achievements",
+          "section_feedback",
+          "top_improvements",
+          "ats_compatibility",
+          "job_match_reasoning",
+          "interview_questions",
+          "resume_strengths",
+          "salary_insight",
+          "competition_level",
+          "fit_verdict"
+        ],
+        "title": "LLMEvaluation"
+      },
+      "LevelFitInfo": {
+        "properties": {
+          "detected_years": {
+            "type": "integer",
+            "title": "Detected Years",
+            "default": 0
+          },
+          "required_years": {
+            "type": "integer",
+            "title": "Required Years",
+            "default": 0
+          },
+          "jd_seniority": {
+            "type": "string",
+            "title": "Jd Seniority",
+            "default": "unspecified"
+          },
+          "multiplier": {
+            "type": "number",
+            "title": "Multiplier",
+            "default": 1.0
+          },
+          "verdict": {
+            "type": "string",
+            "title": "Verdict",
+            "default": "appropriate"
+          },
+          "note": {
+            "type": "string",
+            "title": "Note",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "title": "LevelFitInfo"
+      },
+      "SectionFeedback": {
+        "properties": {
+          "experience": {
+            "type": "string",
+            "title": "Experience"
+          },
+          "skills": {
+            "type": "string",
+            "title": "Skills"
+          },
+          "projects": {
+            "type": "string",
+            "title": "Projects"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          }
+        },
+        "type": "object",
+        "required": [
+          "experience",
+          "skills",
+          "projects",
+          "summary"
+        ],
+        "title": "SectionFeedback",
+        "description": "Typed rather than Dict[str, str].\n\nStrict JSON-schema mode cannot express an open-ended map, and naming the\nsections also tells the model exactly which ones to comment on."
+      },
+      "SectionScores": {
+        "properties": {
+          "experience": {
+            "type": "number",
+            "title": "Experience"
+          },
+          "skills": {
+            "type": "number",
+            "title": "Skills"
+          },
+          "education": {
+            "type": "number",
+            "title": "Education"
+          },
+          "projects": {
+            "type": "number",
+            "title": "Projects"
+          },
+          "summary": {
+            "type": "number",
+            "title": "Summary"
+          }
+        },
+        "type": "object",
+        "required": [
+          "experience",
+          "skills",
+          "education",
+          "projects",
+          "summary"
+        ],
+        "title": "SectionScores"
+      },
+      "SignalNoiseResult": {
+        "properties": {
+          "clarity_score": {
+            "type": "number",
+            "title": "Clarity Score"
+          },
+          "weak_phrases_found": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Weak Phrases Found"
+          },
+          "strong_verbs_found": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Strong Verbs Found"
+          },
+          "quantified_sentences": {
+            "type": "integer",
+            "title": "Quantified Sentences"
+          },
+          "passive_voice_count": {
+            "type": "integer",
+            "title": "Passive Voice Count",
+            "default": 0
+          },
+          "buzzwords_found": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Buzzwords Found",
+            "default": []
+          },
+          "total_sentences_analyzed": {
+            "type": "integer",
+            "title": "Total Sentences Analyzed",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "clarity_score",
+          "weak_phrases_found",
+          "strong_verbs_found",
+          "quantified_sentences"
+        ],
+        "title": "SignalNoiseResult"
+      },
+      "SkillGapAnalysis": {
+        "properties": {
+          "critical": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Critical"
+          },
+          "important": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Important"
+          },
+          "optional": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Optional"
+          }
+        },
+        "type": "object",
+        "required": [
+          "critical",
+          "important",
+          "optional"
+        ],
+        "title": "SkillGapAnalysis"
+      },
+      "TopMatch": {
+        "properties": {
+          "sentence": {
+            "type": "string",
+            "title": "Sentence"
+          },
+          "score": {
+            "type": "number",
+            "title": "Score"
+          }
+        },
+        "type": "object",
+        "required": [
+          "sentence",
+          "score"
+        ],
+        "title": "TopMatch"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}

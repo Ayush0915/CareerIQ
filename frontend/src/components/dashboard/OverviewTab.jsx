@@ -1,5 +1,8 @@
-import React from 'react'
-import { RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer } from 'recharts'
+import React, { lazy, Suspense } from 'react'
+
+// recharts is ~100KB gzipped for one radar chart in a tab that is not always
+// opened, and this tab is imported statically, so it was in the main bundle.
+const PerformanceRadar = lazy(() => import('./PerformanceRadar'))
 import { CheckCircle, AlertTriangle, FileText, Award, Brain, Info } from 'lucide-react'
 import ScoreRing from '../ScoreRing'
 import Card from '../ui/Card'
@@ -21,7 +24,9 @@ export function ScoreFitTab({ data }) {
   } = data
 
   const clarity = signal_noise?.clarity_score ?? 0
-  const overall = Math.round(semantic_match_score * 0.4 + ats_keyword_score * 0.35 + clarity * 0.25)
+  const overall = Math.round(
+    data.fit?.overall ?? semantic_match_score * 0.4 + ats_keyword_score * 0.35 + clarity * 0.25,
+  )
   const overallC = scoreColor(overall)
 
   const radarData = [
@@ -111,13 +116,9 @@ export function ScoreFitTab({ data }) {
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
         <Card padding={20}>
           <p style={{ fontSize:'0.75rem', fontWeight:700, color:'#374151', marginBottom:12 }}>Performance Radar</p>
-          <ResponsiveContainer width="100%" height={200}>
-            <RadarChart data={radarData}>
-              <PolarGrid stroke="#F0F1F5" />
-              <PolarAngleAxis dataKey="subject" tick={{ fill:'#9CA3AF', fontSize:11, fontFamily:'Inter' }} />
-              <Radar dataKey="A" stroke="#5147E5" fill="#5147E5" fillOpacity={0.1} strokeWidth={2} dot={{ fill:'#5147E5', r:3 }} />
-            </RadarChart>
-          </ResponsiveContainer>
+          <Suspense fallback={<div style={{ height:200 }} className="skeleton-box" />}>
+            <PerformanceRadar data={radarData} />
+          </Suspense>
         </Card>
         <Card padding={20}>
           <p style={{ fontSize:'0.75rem', fontWeight:700, color:'#374151', marginBottom:12 }}>Top Matching Segments</p>

@@ -1,135 +1,127 @@
-import time
-from unittest.mock import patch
+"""Cache behaviour for the schema-constrained resume evaluation."""
 import pytest
-from services.llm_evaluator import (
-    llm_master_evaluate,
-    _eval_cache,
-    _get_cache_key,
-    CACHE_TTL,
-)
+from core.config import settings
+from models.schemas import KeywordAnalysis, LLMEvaluation, SectionFeedback, SectionScores
+from services import llm_evaluator
+from services.llm_evaluator import CACHE_TTL, _eval_cache, _get_cache_key, llm_master_evaluate
+
+
+def make_evaluation(score: float = 85) -> LLMEvaluation:
+    return LLMEvaluation(
+        overall_score=score,
+        experience_level="senior",
+        years_detected="5 years",
+        section_scores=SectionScores(
+            experience=85, skills=90, education=80, projects=85, summary=80
+        ),
+        keyword_analysis=KeywordAnalysis(
+            present=["python", "aws"], missing_critical=[], missing_recommended=[]
+        ),
+        grammar_issues=[],
+        cliches_found=[],
+        readability_score=90,
+        passive_voice_count=0,
+        quantified_achievements=3,
+        section_feedback=SectionFeedback(
+            experience="Good fit", skills="Strong", projects="Solid", summary="Clear"
+        ),
+        top_improvements=["Add metrics"],
+        ats_compatibility=88,
+        job_match_reasoning="Strong match",
+        interview_questions=["Tell me about your AWS experience"],
+        resume_strengths=["Python expertise"],
+        salary_insight="$120k-$150k",
+        competition_level="medium",
+        fit_verdict="strong_fit",
+    )
 
 
 @pytest.fixture(autouse=True)
-def clear_llm_cache():
+def clear_cache():
     _eval_cache.clear()
     yield
     _eval_cache.clear()
 
 
-def test_llm_evaluator_cache_hit():
-    resume = "Jane Doe\nExperienced Python developer with Django and AWS expertise."
+@pytest.fixture(autouse=True)
+def configured(monkeypatch):
+    """Pretend a key is present so the evaluator does not short-circuit."""
+    monkeypatch.setattr(settings, "openrouter_api_key", "test-key", raising=False)
+    yield
+
+
+class StubLLM:
+    """Counts calls so cache hits are observable."""
+
+    def __init__(self, result):
+        self.result = result
+        self.calls = 0
+
+    async def __call__(self, *args, **kwargs):
+        self.calls += 1
+        return self.result
+
+
+@pytest.mark.asyncio
+async def test_cache_hit_avoids_second_call(monkeypatch):
+    stub = StubLLM(make_evaluation())
+    monkeypatch.setattr(llm_evaluator.llm, "complete_json", stub)
+
+    resume = "Experienced Python developer with Django and AWS expertise."
     jd = "Looking for a Senior Python Engineer with AWS experience."
 
-    dummy_json_response = """
-    {
-        "overall_score": 85,
-        "experience_level": "senior",
-        "years_detected": "5 years",
-        "section_scores": {"experience": 85, "skills": 90, "education": 80, "projects": 85, "summary": 80},
-        "keyword_analysis": {"present": ["python", "aws"], "missing_critical": [], "missing_recommended": []},
-        "grammar_issues": [],
-        "cliches_found": [],
-        "readability_score": 90,
-        "passive_voice_count": 0,
-        "quantified_achievements": 3,
-        "section_feedback": {"experience": "Good fit", "skills": "Strong", "projects": "Solid", "summary": "Clear"},
-        "top_improvements": ["Add metrics"],
-        "ats_compatibility": 88,
-        "job_match_reasoning": "Strong match",
-        "interview_questions": ["Tell me about AWS experience"],
-        "resume_strengths": ["Python expertise"],
-        "salary_insight": "$120k-$150k",
-        "competition_level": "medium",
-        "fit_verdict": "strong_fit"
-    }
-    """
+    first = await llm_master_evaluate(resume, jd)
+    assert first.overall_score == 85
+    assert stub.calls == 1
 
-    with patch("services.llm_evaluator._call_llm", return_value=dummy_json_response) as mock_llm:
-        res1 = llm_master_evaluate(resume, jd)
-        assert res1["overall_score"] == 85
-        assert mock_llm.call_count == 1
-
-        # Second call with identical input should hit cache and NOT invoke _call_llm again
-        res2 = llm_master_evaluate(resume, jd)
-        assert res2["overall_score"] == 85
-        assert mock_llm.call_count == 1
-        assert res1 == res2
+    second = await llm_master_evaluate(resume, jd)
+    assert second == first
+    assert stub.calls == 1, "identical input must be served from cache"
 
 
-def test_llm_evaluator_cache_miss_different_input():
-    resume1 = "Alice Smith\nFrontend Engineer with React and TypeScript."
-    resume2 = "Bob Jones\nBackend Engineer with Go and Kubernetes."
-    jd = "Seeking Fullstack Software Engineer."
+@pytest.mark.asyncio
+async def test_different_input_misses_cache(monkeypatch):
+    stub = StubLLM(make_evaluation(75))
+    monkeypatch.setattr(llm_evaluator.llm, "complete_json", stub)
 
-    dummy_json_response = """
-    {
-        "overall_score": 75,
-        "experience_level": "mid",
-        "years_detected": "3 years",
-        "section_scores": {"experience": 75, "skills": 75, "education": 75, "projects": 75, "summary": 75},
-        "keyword_analysis": {"present": [], "missing_critical": [], "missing_recommended": []},
-        "grammar_issues": [],
-        "cliches_found": [],
-        "readability_score": 80,
-        "passive_voice_count": 0,
-        "quantified_achievements": 1,
-        "section_feedback": {"experience": "Good", "skills": "OK", "projects": "Good", "summary": "OK"},
-        "top_improvements": [],
-        "ats_compatibility": 75,
-        "job_match_reasoning": "Decent fit",
-        "interview_questions": [],
-        "resume_strengths": [],
-        "salary_insight": "",
-        "competition_level": "medium",
-        "fit_verdict": "good_fit"
-    }
-    """
+    jd = "Seeking a Fullstack Software Engineer."
+    await llm_master_evaluate("Frontend engineer, React and TypeScript.", jd)
+    await llm_master_evaluate("Backend engineer, Go and Kubernetes.", jd)
 
-    with patch("services.llm_evaluator._call_llm", return_value=dummy_json_response) as mock_llm:
-        res1 = llm_master_evaluate(resume1, jd)
-        res2 = llm_master_evaluate(resume2, jd)
-
-        assert mock_llm.call_count == 2
-        assert res1 == res2
+    assert stub.calls == 2
 
 
-def test_llm_evaluator_cache_expiration():
-    resume = "Charlie Brown\nData Scientist with PyTorch."
-    jd = "Looking for Data Scientist."
+@pytest.mark.asyncio
+async def test_cache_expires_after_ttl(monkeypatch):
+    stub = StubLLM(make_evaluation(90))
+    monkeypatch.setattr(llm_evaluator.llm, "complete_json", stub)
 
-    dummy_json_response = """
-    {
-        "overall_score": 90,
-        "experience_level": "senior",
-        "years_detected": "6 years",
-        "section_scores": {"experience": 90, "skills": 90, "education": 90, "projects": 90, "summary": 90},
-        "keyword_analysis": {"present": ["pytorch"], "missing_critical": [], "missing_recommended": []},
-        "grammar_issues": [],
-        "cliches_found": [],
-        "readability_score": 95,
-        "passive_voice_count": 0,
-        "quantified_achievements": 4,
-        "section_feedback": {"experience": "Excellent", "skills": "Top", "projects": "Great", "summary": "Clear"},
-        "top_improvements": [],
-        "ats_compatibility": 92,
-        "job_match_reasoning": "Excellent fit",
-        "interview_questions": [],
-        "resume_strengths": [],
-        "salary_insight": "",
-        "competition_level": "low",
-        "fit_verdict": "strong_fit"
-    }
-    """
+    resume = "Data scientist with PyTorch."
+    jd = "Looking for a Data Scientist."
 
-    with patch("services.llm_evaluator._call_llm", return_value=dummy_json_response) as mock_llm:
-        llm_master_evaluate(resume, jd)
-        assert mock_llm.call_count == 1
+    await llm_master_evaluate(resume, jd)
+    assert stub.calls == 1
 
-        # Simulate time passing beyond TTL (e.g. 601 seconds)
-        cache_key = _get_cache_key(resume, jd)
-        old_time, val = _eval_cache[cache_key]
-        _eval_cache[cache_key] = (old_time - (CACHE_TTL + 5), val)
+    key = _get_cache_key(resume, jd)
+    timestamp, value = _eval_cache[key]
+    _eval_cache[key] = (timestamp - (CACHE_TTL + 5), value)
 
-        # Evaluating again should miss cache and trigger a new LLM call
-        llm_master_evaluate(resume, jd)
-        assert mock_llm.call_count == 2
+    await llm_master_evaluate(resume, jd)
+    assert stub.calls == 2, "an expired entry must trigger a fresh call"
+
+
+@pytest.mark.asyncio
+async def test_returns_none_without_api_key(monkeypatch):
+    """No key means no fabricated result — the caller renders the
+    deterministic half of the analysis instead of a zero-filled evaluation."""
+    monkeypatch.setattr(settings, "openrouter_api_key", "", raising=False)
+    assert await llm_master_evaluate("resume text", "jd text") is None
+
+
+@pytest.mark.asyncio
+async def test_provider_failure_returns_none(monkeypatch):
+    async def boom(*args, **kwargs):
+        raise llm_evaluator.llm.LLMError("all providers failed")
+
+    monkeypatch.setattr(llm_evaluator.llm, "complete_json", boom)
+    assert await llm_master_evaluate("resume text", "jd text") is None

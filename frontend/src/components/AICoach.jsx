@@ -1,128 +1,142 @@
 import React, { useState } from 'react'
-import { Sparkles, FileText, Map, Loader2, Copy, Check, Zap } from 'lucide-react'
-import { getAICoaching } from '../services/api'
+import { Check, Copy, FileText, Loader2, Sparkles, Zap } from 'lucide-react'
+import { generateCoaching } from '../services/api'
+
+/* One artefact per request, generated when asked for.
+   The previous version fired all five generators on every visit to this tab —
+   five of roughly twenty free requests per minute, for output the user might
+   never scroll to. */
+const MODES = [
+  { id: 'bullets', label: 'Bullet points', blurb: 'Rewrites weak bullets with action verbs and impact' },
+  { id: 'roadmap', label: '30-day roadmap', blurb: 'A focused plan for your biggest skill gaps' },
+  { id: 'interview', label: 'Interview prep', blurb: 'Likely questions for this specific role' },
+  { id: 'cover_letter', label: 'Cover letter', blurb: 'Three paragraphs, no filler' },
+  { id: 'linkedin', label: 'LinkedIn About', blurb: 'A keyword-dense profile summary' },
+]
 
 function CopyButton({ text }) {
   const [copied, setCopied] = useState(false)
-  const copy = () => {
-    navigator.clipboard.writeText(text)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      /* clipboard blocked — the text is selectable anyway */
+    }
   }
+
   return (
     <button
       onClick={copy}
-      style={{ display:'flex', alignItems:'center', gap:4, fontSize:'0.72rem', color:'#9CA3AF', background:'none', border:'none', cursor:'pointer', padding:'4px 8px', borderRadius:6, transition:'all 0.15s' }}
-      onMouseEnter={e => { e.currentTarget.style.background='#EEF0FE'; e.currentTarget.style.color='#5147E5' }}
-      onMouseLeave={e => { e.currentTarget.style.background='none'; e.currentTarget.style.color='#9CA3AF' }}
+      className="btn-ghost"
+      style={{ fontSize: '0.72rem', padding: '4px 10px' }}
+      aria-label="Copy to clipboard"
     >
       {copied ? <><Check size={12} /> Copied</> : <><Copy size={12} /> Copy</>}
     </button>
   )
 }
 
-function AICard({ icon: Icon, title, content, loading }) {
-  return (
-    <div className="ev-card" style={{ padding:18 }}>
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 }}>
-        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-          <div style={{ width:30, height:30, background:'#EEF0FE', borderRadius:8, display:'flex', alignItems:'center', justifyContent:'center' }}>
-            <Icon size={14} color="#5147E5" />
-          </div>
-          <h4 style={{ fontWeight:600, fontSize:'0.875rem', color:'#1A1D2E', margin:0 }}>{title}</h4>
-        </div>
-        {content && !loading && <CopyButton text={content} />}
-      </div>
-      {loading ? (
-        <div style={{ display:'flex', alignItems:'center', gap:8, fontSize:'0.82rem', color:'#9CA3AF', padding:'10px 0' }}>
-          <Loader2 size={15} color="#5147E5" style={{ animation:'spin 1s linear infinite' }} /> Generating...
-        </div>
-      ) : content ? (
-        <pre style={{ fontSize:'0.82rem', color:'#374151', whiteSpace:'pre-wrap', fontFamily:"'Inter', sans-serif", lineHeight:1.65, margin:0 }}>{content}</pre>
-      ) : null}
-    </div>
-  )
-}
-
 export default function AICoach({ analysisData }) {
-  const [result, setResult] = useState(null)
-  const [loading, setLoading] = useState(false)
+  const [results, setResults] = useState({})
+  const [pending, setPending] = useState(null)
   const [error, setError] = useState(null)
 
-  const run = async () => {
-    setLoading(true)
+  const payload = {
+    weak_phrases: analysisData.signal_noise?.weak_phrases_found ?? [],
+    matching_skills: analysisData.matching_skills ?? [],
+    missing_skills: analysisData.missing_skills ?? [],
+    job_description: analysisData.job_description || '',
+    resume_text: analysisData.resume_text || '',
+    experience_level: analysisData.experience_info?.level || 'mid',
+  }
+
+  const run = async (mode) => {
+    setPending(mode)
     setError(null)
     try {
-      const res = await getAICoaching({
-        weak_phrases: analysisData.signal_noise.weak_phrases_found,
-        matching_skills: analysisData.matching_skills,
-        missing_skills: analysisData.missing_skills,
-        job_description: analysisData.jd_text || '',
-        resume_text: '',
-      })
-      setResult(res)
-    } catch (e) {
-      setError('AI Coach failed. Check your GROQ_API_KEY in .env file.')
+      const result = await generateCoaching(mode, payload)
+      setResults((prev) => ({ ...prev, [mode]: result.content }))
+    } catch {
+      setError('Could not generate that right now. Check the API key in backend/.env and try again.')
     } finally {
-      setLoading(false)
+      setPending(null)
     }
   }
 
   return (
-    <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
-      {/* Header */}
-      <div className="ev-card" style={{ padding:20 }}>
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-          <div style={{ display:'flex', alignItems:'center', gap:12 }}>
-            <div style={{ width:40, height:40, background:'linear-gradient(135deg,#5147E5,#8B7CF6)', borderRadius:12, display:'flex', alignItems:'center', justifyContent:'center' }}>
-              <Sparkles size={18} color="#fff" />
-            </div>
-            <div>
-              <h3 style={{ fontWeight:700, fontSize:'0.95rem', color:'#1A1D2E', margin:'0 0 2px' }}>AI Career Coach</h3>
-              <p style={{ fontSize:'0.72rem', color:'#9CA3AF', margin:0 }}>Powered by Qwen 3.6 27b via Groq</p>
-            </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div className="ev-card" style={{ padding: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+          <div style={{ width: 40, height: 40, background: 'linear-gradient(135deg,#5147E5,#8B7CF6)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Sparkles size={18} color="#fff" />
           </div>
-          {!result && (
-            <button
-              onClick={run}
-              disabled={loading}
-              className="btn-primary"
-              style={{ display:'flex', alignItems:'center', gap:7, padding:'9px 18px', fontSize:'0.82rem', opacity: loading ? 0.7 : 1 }}
-            >
-              {loading ? <Loader2 size={14} style={{ animation:'spin 1s linear infinite' }} /> : <Zap size={14} />}
-              {loading ? 'Generating...' : 'Get AI Insights'}
-            </button>
-          )}
+          <div>
+            <h3 style={{ fontWeight: 700, fontSize: '0.95rem', color: '#1A1D2E', margin: '0 0 2px' }}>AI Career Coach</h3>
+            <p style={{ fontSize: '0.72rem', color: '#9CA3AF', margin: 0 }}>
+              Pick what you need — each one is generated on request
+            </p>
+          </div>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 8 }}>
+          {MODES.map((mode) => {
+            const isPending = pending === mode.id
+            const isDone = Boolean(results[mode.id])
+            return (
+              <button
+                key={mode.id}
+                onClick={() => run(mode.id)}
+                disabled={Boolean(pending)}
+                className="ev-card"
+                style={{
+                  padding: '12px 14px',
+                  textAlign: 'left',
+                  cursor: pending ? 'not-allowed' : 'pointer',
+                  border: isDone ? '1px solid #BBF7D0' : '1px solid #E8EAF0',
+                  background: isDone ? '#F0FDF4' : '#fff',
+                  opacity: pending && !isPending ? 0.5 : 1,
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                  {isPending
+                    ? <Loader2 size={13} color="#5147E5" style={{ animation: 'spin 1s linear infinite' }} />
+                    : isDone
+                      ? <Check size={13} color="#16A34A" />
+                      : <Zap size={13} color="#5147E5" />}
+                  <span style={{ fontWeight: 600, fontSize: '0.8rem', color: '#1A1D2E' }}>{mode.label}</span>
+                </div>
+                <p style={{ fontSize: '0.68rem', color: '#9CA3AF', margin: 0, lineHeight: 1.45 }}>{mode.blurb}</p>
+              </button>
+            )
+          })}
         </div>
 
         {error && (
-          <p style={{ fontSize:'0.82rem', color:'#EF4444', marginTop:14, padding:'10px 14px', background:'#FEF2F2', borderRadius:8, border:'1px solid #FECACA' }}>{error}</p>
-        )}
-
-        {!loading && !result && !error && (
-          <p style={{ fontSize:'0.82rem', color:'#9CA3AF', marginTop:14, padding:'10px 14px', background:'#F8F9FC', borderRadius:8, textAlign:'center' }}>
-            Click "Get AI Insights" to generate bullet rewrites and a 30-day skill roadmap.
+          <p style={{ fontSize: '0.82rem', color: '#EF4444', marginTop: 14, padding: '10px 14px', background: '#FEF2F2', borderRadius: 8, border: '1px solid #FECACA' }}>
+            {error}
           </p>
         )}
       </div>
 
-      {/* Content Cards */}
-      {(loading || result) && (
-        <>
-          <AICard
-            icon={FileText}
-            title="Improved Bullet Points"
-            content={result?.rewritten_bullets}
-            loading={loading}
-          />
-          <AICard
-            icon={Map}
-            title="30-Day Skill Roadmap"
-            content={result?.skill_roadmap}
-            loading={loading}
-          />
-        </>
-      )}
+      {MODES.filter((mode) => results[mode.id]).map((mode) => (
+        <div key={mode.id} className="ev-card" style={{ padding: 18 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ width: 30, height: 30, background: '#EEF0FE', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <FileText size={14} color="#5147E5" />
+              </div>
+              <h4 style={{ fontWeight: 600, fontSize: '0.875rem', color: '#1A1D2E', margin: 0 }}>{mode.label}</h4>
+            </div>
+            <CopyButton text={results[mode.id]} />
+          </div>
+          <pre style={{ fontSize: '0.82rem', color: '#374151', whiteSpace: 'pre-wrap', fontFamily: "'Inter', sans-serif", lineHeight: 1.65, margin: 0 }}>
+            {results[mode.id]}
+          </pre>
+        </div>
+      ))}
     </div>
   )
 }

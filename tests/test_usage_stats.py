@@ -1,7 +1,7 @@
+import main
 import pytest
 from fastapi.testclient import TestClient
-import main
-from main import app, _usage_stats
+from main import _usage_stats, app
 
 client = TestClient(app)
 

@@ -4,13 +4,14 @@ import ScoreSidebar from './dashboard/ScoreSidebar'
 import ScoreFitTab from './dashboard/OverviewTab'
 import GapsATSTab from './dashboard/SkillsTab'
 
-// Lazy-loaded tab components for code splitting & faster initial page load
+// Lazy-loaded tab components for code splitting & faster initial page load.
+// ATSBreakdown was listed here too, but SkillsTab imports it statically, so the
+// lazy wrapper did nothing except imply the bundle was smaller than it was.
+// LLMInsights was lazy-imported and never rendered at all — now deleted.
 const JobRecommendations = lazy(() => import('./JobRecommendations'))
 const CourseRecommendations = lazy(() => import('./CourseRecommendations'))
 const InterviewPrep = lazy(() => import('./InterviewPrep'))
 const AICoach = lazy(() => import('./AICoach'))
-const ATSBreakdown = lazy(() => import('./ATSBreakdown'))
-const LLMInsights = lazy(() => import('./LLMInsights'))
 
 const TABS = [
   { id:'score_fit',  label:'Score & Fit', icon:BarChart3, ariaLabel:'Score and fit analysis tab' },
@@ -112,7 +113,13 @@ export default function ResultsDashboard({ data, onReset, onSelectAnalysis }) {
   if (!data) return null
 
   const clarity = data.signal_noise?.clarity_score ?? 0
-  const overall = Math.round(data.semantic_match_score * 0.4 + data.ats_keyword_score * 0.35 + clarity * 0.25)
+  // The server computes this now (services/scoring.py), so the number shown
+  // is the number the evaluation harness measures. The local blend is kept
+  // only as a fallback for history entries saved before the fit field existed.
+  const overall = Math.round(
+    data.fit?.overall ??
+      data.semantic_match_score * 0.4 + data.ats_keyword_score * 0.35 + clarity * 0.25,
+  )
   const totalGaps = (data.skill_gap_analysis?.critical?.length ?? 0) + (data.skill_gap_analysis?.important?.length ?? 0) + (data.skill_gap_analysis?.optional?.length ?? 0)
 
   const handleKeyDown = (e, currentIndex) => {

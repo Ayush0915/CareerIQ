@@ -13,6 +13,10 @@ export default {
         "accent-dark": "#3D34C4",
         "accent-light":"#EEF0FE",
         "accent-mid":  "#D8DCFC",
+        // Aliases used by CourseRecommendations. Kept until Phase 6
+        // consolidates the styling systems onto one set of names.
+        primary:       "#5147E5",
+        ink:           "#1A1D2E",
         // Navy text
         navy:          "#1A1D2E",
         "navy-muted":  "#374151",

@@ -4,8 +4,6 @@ Detailed ATS (Applicant Tracking System) simulation.
 Scores the resume on 8 dimensions that real ATS systems evaluate.
 """
 import re
-from typing import Dict, List
-
 
 # ── ATS-unfriendly formatting patterns ───────────────────────────────────────
 
@@ -37,7 +35,7 @@ FORBIDDEN_ELEMENTS = [
 
 # ── Scorer functions ──────────────────────────────────────────────────────────
 
-def _score_contact_info(text: str) -> Dict:
+def _score_contact_info(text: str) -> dict:
     found   = {}
     missing = []
     for field, pattern in CONTACT_PATTERNS.items():
@@ -60,7 +58,7 @@ def _score_contact_info(text: str) -> Dict:
     }
 
 
-def _score_section_headers(text: str) -> Dict:
+def _score_section_headers(text: str) -> dict:
     text_lower = text.lower()
     found   = [h for h in HEADER_PATTERNS if h in text_lower]
     missing = [h for h in ["experience", "education", "skills"] if h not in text_lower]
@@ -79,7 +77,7 @@ def _score_section_headers(text: str) -> Dict:
     }
 
 
-def _score_keyword_density(resume_text: str, jd_text: str) -> Dict:
+def _score_keyword_density(resume_text: str, jd_text: str) -> dict:
     """How well does resume keyword density match JD?"""
     stopwords = {"and", "the", "for", "with", "that", "this", "will", "have", "from",
                  "are", "our", "you", "your", "not", "all", "can", "has", "its"}
@@ -110,7 +108,7 @@ def _score_keyword_density(resume_text: str, jd_text: str) -> Dict:
     }
 
 
-def _score_date_consistency(text: str) -> Dict:
+def _score_date_consistency(text: str) -> dict:
     dates = re.findall(DATE_PATTERN, text.lower())
     has_dates = len(dates) > 0
 
@@ -139,7 +137,7 @@ def _score_date_consistency(text: str) -> Dict:
     }
 
 
-def _score_education(text: str) -> Dict:
+def _score_education(text: str) -> dict:
     text_lower = text.lower()
     found_degrees = [d for d in DEGREE_PATTERNS if d in text_lower]
     has_year = bool(re.search(r"20\d{2}", text))
@@ -160,10 +158,10 @@ def _score_education(text: str) -> Dict:
     }
 
 
-def _score_formatting(text: str) -> Dict:
+def _score_formatting(text: str) -> dict:
     issues    = []
     penalties = 0
-    for key, pattern, msg in FORBIDDEN_ELEMENTS:
+    for _key, pattern, msg in FORBIDDEN_ELEMENTS:
         if re.search(pattern, text, re.I | re.M):
             issues.append(msg)
             penalties += 12
@@ -188,7 +186,7 @@ def _score_formatting(text: str) -> Dict:
     }
 
 
-def _score_length(text: str) -> Dict:
+def _score_length(text: str) -> dict:
     words  = len(text.split())
     pages  = round(words / 400, 1)
 
@@ -218,7 +216,7 @@ def _score_length(text: str) -> Dict:
     }
 
 
-def _score_quantification(text: str) -> Dict:
+def _score_quantification(text: str) -> dict:
     patterns = [
         r"\d+\s*%", r"\$\s*\d+[kmb]?", r"\d+[kmb]\+?",
         r"\d+x", r"\d+\s*(users|customers|engineers|teams|clients)",
@@ -264,7 +262,7 @@ def _score_quantification(text: str) -> Dict:
 
 # ── Main entry point ──────────────────────────────────────────────────────────
 
-def simulate_ats(resume_text: str, jd_text: str) -> Dict:
+def simulate_ats(resume_text: str, jd_text: str) -> dict:
     """Run all 8 ATS checks and return a combined score + breakdown."""
     checks = {
         "contact_info":     _score_contact_info(resume_text),
@@ -293,7 +291,7 @@ def simulate_ats(resume_text: str, jd_text: str) -> Dict:
     overall = round(overall, 1)
 
     top_issues = []
-    for key, data in sorted(checks.items(), key=lambda x: x[1]["score"]):
+    for _key, data in sorted(checks.items(), key=lambda x: x[1]["score"]):
         if data["score"] < 70:
             top_issues.append(data["note"])
         if len(top_issues) >= 4:

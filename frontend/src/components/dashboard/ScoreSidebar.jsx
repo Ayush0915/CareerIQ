@@ -7,9 +7,14 @@ const scoreColor = v => v >= 75 ? '#22C55E' : v >= 50 ? '#F59E0B' : '#EF4444'
 
 export default function ScoreSidebar({ data, activeTab, onTabChange, onSelectAnalysis }) {
   const { semantic_match_score, ats_keyword_score, signal_noise, skill_gap_analysis, matching_skills, missing_skills, llm_evaluation: llm } = data
+  const fit = data.fit
 
   const clarity    = signal_noise?.clarity_score ?? 0
-  const overall    = Math.round(semantic_match_score * 0.4 + ats_keyword_score * 0.35 + clarity * 0.25)
+  // Server-computed (services/scoring.py); the blend is a fallback for
+  // history entries saved before the fit field existed.
+  const overall    = Math.round(
+    data.fit?.overall ?? semantic_match_score * 0.4 + ats_keyword_score * 0.35 + clarity * 0.25,
+  )
   const totalGaps  = (skill_gap_analysis?.critical?.length ?? 0) + (skill_gap_analysis?.important?.length ?? 0) + (skill_gap_analysis?.optional?.length ?? 0)
 
   const contentPct = Math.round(
@@ -74,6 +79,45 @@ export default function ScoreSidebar({ data, activeTab, onTabChange, onSelectAna
         { label:'Optional Gaps',    status:'warn', note:`${skill_gap_analysis?.optional?.length ?? 0} gaps` },
       ]} />
       <div className="ev-divider" />
+
+      {/* Level fit — surfaced because it can move the score substantially */}
+      {fit?.level?.note && (
+        <>
+          <div style={{ padding:'12px 20px' }}>
+            <div style={{ background: fit.level.verdict === 'overqualified' ? '#FFFBEB' : '#EFF6FF',
+                          border: `1px solid ${fit.level.verdict === 'overqualified' ? '#FDE68A' : '#BFDBFE'}`,
+                          borderRadius:10, padding:'10px 12px' }}>
+              <div style={{ fontSize:'0.68rem', fontWeight:700, textTransform:'uppercase',
+                            letterSpacing:'0.06em', marginBottom:4,
+                            color: fit.level.verdict === 'overqualified' ? '#B45309' : '#1D4ED8' }}>
+                {fit.level.verdict === 'overqualified' ? 'Above this level' : 'Below this level'}
+              </div>
+              <p style={{ fontSize:'0.7rem', color:'#6B7280', margin:0, lineHeight:1.5 }}>
+                {fit.level.note}
+              </p>
+            </div>
+          </div>
+          <div className="ev-divider" />
+        </>
+      )}
+
+      {/* Unsupported skills — the lines a recruiter will probe */}
+      {fit?.unsupported_skills?.length > 6 && (
+        <>
+          <div style={{ padding:'12px 20px' }}>
+            <div style={{ background:'#FEF2F2', border:'1px solid #FECACA', borderRadius:10, padding:'10px 12px' }}>
+              <div style={{ fontSize:'0.68rem', fontWeight:700, color:'#B91C1C', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:4 }}>
+                Listed but not shown
+              </div>
+              <p style={{ fontSize:'0.7rem', color:'#6B7280', margin:0, lineHeight:1.5 }}>
+                {fit.unsupported_skills.length} skills appear only in a list. Move the
+                important ones into an experience bullet with what you built.
+              </p>
+            </div>
+          </div>
+          <div className="ev-divider" />
+        </>
+      )}
 
       {/* Courses teaser */}
       <div style={{ padding:'14px 20px' }}>

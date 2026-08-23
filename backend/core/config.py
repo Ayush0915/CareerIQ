@@ -6,15 +6,26 @@ API key surfaced as a failed request deep inside a retry loop rather than as a
 startup error.
 """
 from functools import lru_cache
+from pathlib import Path
 from typing import List
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+BACKEND_DIR = Path(__file__).resolve().parent.parent
+REPO_ROOT = BACKEND_DIR.parent
+
+# Absolute paths, because a relative "env_file" resolves against the current
+# working directory: running uvicorn from backend/ found the file, running a
+# script from the repo root silently did not, and the failure looked like
+# "API key not set" rather than "wrong directory".
+# backend/.env wins where both define a key.
+ENV_FILES = (str(REPO_ROOT / ".env"), str(BACKEND_DIR / ".env"))
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=ENV_FILES,
         env_file_encoding="utf-8",
         extra="ignore",
         case_sensitive=False,
@@ -104,6 +115,10 @@ class Settings(BaseSettings):
 
     # ── Behaviour ─────────────────────────────────────────────────────────
     warm_up_embeddings: bool = True
+
+    # fastembed otherwise caches into the system temp directory, which Windows
+    # clears — costing a silent 67MB re-download on some later run.
+    model_cache_dir: str = str(Path.home() / ".cache" / "careeriq" / "models")
 
     @field_validator("environment")
     @classmethod

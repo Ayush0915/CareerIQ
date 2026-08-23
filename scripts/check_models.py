@@ -75,11 +75,34 @@ def show(models: List[Dict[str, Any]], limit: int) -> None:
     print(f"\n{len(rows)} shown of {len(models)} matching.\n")
 
 
+def _api_key() -> str:
+    """Read the key exactly as the application does.
+
+    Reading os.environ directly meant a key sitting in backend/.env was
+    invisible to this script, which then reported "not set" while the app
+    itself was configured fine.
+    """
+    try:
+        sys.path.insert(0, str(Path(__file__).parent.parent / "backend"))
+        from core.config import settings
+
+        return settings.llm_api_key
+    except Exception:
+        return os.environ.get("OPENROUTER_API_KEY", "")
+
+
 def probe(model_id: str) -> int:
     """Send one real schema-constrained request and report conformance."""
-    api_key = os.environ.get("OPENROUTER_API_KEY", "")
+    api_key = _api_key()
     if not api_key:
-        print("OPENROUTER_API_KEY is not set — cannot probe.", file=sys.stderr)
+        from core.config import ENV_FILES
+
+        print("OPENROUTER_API_KEY is not set.", file=sys.stderr)
+        print("Looked in:", file=sys.stderr)
+        for path in ENV_FILES:
+            marker = "found" if Path(path).exists() else "missing"
+            print(f"  {path}  [{marker}]", file=sys.stderr)
+        print("...and the process environment.", file=sys.stderr)
         return 1
 
     schema = {
@@ -154,6 +177,10 @@ def validate_configured() -> int:
     from core.config import settings
 
     catalogue = {m["id"]: m for m in fetch_models()}
+
+    key = settings.llm_api_key
+    print()
+    print(f"API key: {'configured' if key else 'NOT SET — probing will fail'}")
 
     chains = {
         "PRIMARY_MODEL / FALLBACK_MODELS": settings.model_chain,

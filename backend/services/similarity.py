@@ -1,17 +1,45 @@
+import logging
+import os
 import re
+from pathlib import Path
 
 import numpy as np
 from fastembed import TextEmbedding
 
 EMBEDDING_MODEL = "BAAI/bge-small-en-v1.5"
 
+logger = logging.getLogger(__name__)
+
 _model = None
+
+
+def _cache_dir() -> str:
+    """Where the embedding model lives on disk.
+
+    fastembed defaults to the system temp directory, which Windows clears —
+    silently re-downloading 67MB on some later run. Pin it somewhere durable.
+    """
+    try:
+        from core.config import settings
+
+        target = Path(settings.model_cache_dir)
+    except Exception:  # pragma: no cover - config-free use (scripts, tests)
+        target = Path(
+            os.environ.get(
+                "MODEL_CACHE_DIR", str(Path.home() / ".cache" / "careeriq" / "models")
+            )
+        )
+
+    target.mkdir(parents=True, exist_ok=True)
+    return str(target)
 
 
 def get_model():
     global _model
     if _model is None:
-        _model = TextEmbedding(model_name=EMBEDDING_MODEL)
+        cache = _cache_dir()
+        logger.info("Loading %s (cache: %s)", EMBEDDING_MODEL, cache)
+        _model = TextEmbedding(model_name=EMBEDDING_MODEL, cache_dir=cache)
     return _model
 
 

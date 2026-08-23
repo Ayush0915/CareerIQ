@@ -12,15 +12,17 @@ import re
 from functools import lru_cache
 from typing import List, Pattern, Sequence, Tuple
 
+from services.aliases import expand as expand_aliases
 from utils.text_cleaner import SKILL_BOUNDARY, SKILL_CHARS, normalize
 
-# Short forms that should resolve to their canonical taxonomy entry.
+# Short forms with exactly one reading. Ambiguous ones (notably "tf", which is
+# Terraform on an infra resume and TensorFlow on an ML one) live in
+# services.aliases, which resolves them from document context.
 SYNONYMS = {
     "ml": "machine learning",
     "dl": "deep learning",
     "js": "javascript",
     "py": "python",
-    "tf": "tensorflow",
     "np": "numpy",
     "nlp": "natural language processing",
     "k8s": "kubernetes",
@@ -81,8 +83,13 @@ def apply_synonyms(text: str) -> str:
 
 
 def normalize_text(text: str) -> str:
-    """Full normalization pipeline applied to both resume and JD."""
-    return apply_synonyms(normalize(text))
+    """Full normalization pipeline applied to both resume and JD.
+
+    Alias expansion runs here rather than at the call site so the resume and
+    the job description can never be expanded differently — which is the same
+    class of bug as the original clean_text asymmetry.
+    """
+    return expand_aliases(apply_synonyms(normalize(text)))
 
 
 @lru_cache(maxsize=8)

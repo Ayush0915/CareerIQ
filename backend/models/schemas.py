@@ -92,6 +92,27 @@ class ATSSimulation(BaseModel):
     verdict:           str
 
 
+class LevelFitInfo(BaseModel):
+    detected_years:  int = 0
+    required_years:  int = 0
+    jd_seniority:    str = "unspecified"
+    multiplier:      float = 1.0
+    verdict:         str = "appropriate"
+    note:            str = ""
+
+
+class FitBreakdown(BaseModel):
+    """The score the user sees, and what produced it."""
+    overall:            float
+    semantic:           float
+    coverage:           float
+    clarity:            float
+    level:              LevelFitInfo
+    evidence_ratio:     float = 1.0
+    unsupported_skills: List[str] = []
+    notes:              List[str] = []
+
+
 class AnalysisResponse(BaseModel):
     # Core scores
     semantic_match_score:  float
@@ -116,6 +137,8 @@ class AnalysisResponse(BaseModel):
     section_scores:   Optional[Dict[str, float]] = None
     # New: ATS simulation
     ats_simulation:   Optional[ATSSimulation] = None
+    # Unified fit score — the same function the evaluation harness scores
+    fit:              Optional[FitBreakdown] = None
     # New: metadata
     contact_info:     Optional[Dict[str, str]] = None
     word_count:       Optional[int] = None

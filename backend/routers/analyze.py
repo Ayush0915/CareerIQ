@@ -9,7 +9,13 @@ from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from core.config import settings
 from core.limiter import limiter
-from models.schemas import AnalysisResponse, ExperienceInfo, LLMEvaluation, TopMatch
+from models.schemas import (
+    AnalysisResponse,
+    ExperienceInfo,
+    FitBreakdown,
+    LLMEvaluation,
+    TopMatch,
+)
 
 from typing import Optional
 from services.parser import parse_resume, extract_text_from_pdf, extract_text_from_docx
@@ -22,6 +28,13 @@ from services.llm_evaluator import llm_master_evaluate
 from services.experience_detector import detect_experience
 from services.section_parser import parse_sections, score_sections
 from services.ats_simulator import simulate_ats
+from services.evidence import (
+    evidence_ratio,
+    gather_evidence,
+    unsupported_skills,
+    weighted_coverage,
+)
+from services.scoring import compute_fit
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -140,7 +153,11 @@ async def analyze_resume(
             await asyncio.sleep(0.01)
 
             # ── Phase 3: Similarity & ATS calculation ───────────────────────
-            keyword_score = calculate_keyword_coverage(resume_skills, jd_skills)
+            # Evidence-weighted coverage: a skill demonstrated in an
+            # experience bullet counts for far more than the same word sitting
+            # in a comma-separated list.
+            evidence = gather_evidence(resume_raw, skills_list)
+            keyword_score = weighted_coverage(evidence, jd_skills)
             sim           = calculate_similarity(resume_raw, jd)
             missing       = get_missing_skills(resume_skills, jd_skills)
             matching      = get_matching_skills(resume_skills, jd_skills)
@@ -192,6 +209,19 @@ async def analyze_resume(
             elif isinstance(section_raw, Exception):
                 logger.warning("Section scoring failed: %s", section_raw)
 
+            # One scoring function, shared with the evaluation harness, so the
+            # number measured offline is the number the user is shown.
+            fit = compute_fit(
+                semantic_score=sim["final_score"],
+                coverage_score=keyword_score,
+                clarity_score=signal.get("clarity_score", 0.0),
+                detected_years=(experience_info.detected_years if experience_info else 0),
+                required_years=(experience_info.required_years if experience_info else 0),
+                jd_text=jd,
+                evidence_ratio_value=evidence_ratio(evidence),
+                unsupported=unsupported_skills(evidence),
+            )
+
             elapsed = round(time.perf_counter() - t0, 2)
             logger.info(f"Analysis complete in {elapsed}s | skills={len(resume_skills)} | score={sim['final_score']}")
 
@@ -211,6 +241,7 @@ async def analyze_resume(
                 experience_info       = experience_info,
                 section_scores        = section_scores_result,
                 ats_simulation        = ats_sim,
+                fit                   = FitBreakdown(**fit.to_dict()),
                 contact_info          = contact_info,
                 word_count            = word_count,
                 processing_time_s     = elapsed,

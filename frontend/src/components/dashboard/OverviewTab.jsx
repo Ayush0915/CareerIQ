@@ -24,7 +24,9 @@ export function ScoreFitTab({ data }) {
   } = data
 
   const clarity = signal_noise?.clarity_score ?? 0
-  const overall = Math.round(semantic_match_score * 0.4 + ats_keyword_score * 0.35 + clarity * 0.25)
+  const overall = Math.round(
+    data.fit?.overall ?? semantic_match_score * 0.4 + ats_keyword_score * 0.35 + clarity * 0.25,
+  )
   const overallC = scoreColor(overall)
 
   const radarData = [

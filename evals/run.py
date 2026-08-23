@@ -23,7 +23,15 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from evals import metrics  # noqa: E402
 from evals.dataset import EvalCase, load_cases, summary  # noqa: E402
 from evals.parse_recall import DEFAULT_FIXTURES, score_all  # noqa: E402
-from services.recommender import calculate_keyword_coverage  # noqa: E402
+from services.evidence import (  # noqa: E402
+    evidence_ratio,
+    gather_evidence,
+    unsupported_skills,
+    weighted_coverage,
+)
+from services.experience_detector import detect_experience  # noqa: E402
+from services.scoring import compute_fit  # noqa: E402
+from services.signal_noise_analyzer import analyze_signal_to_noise  # noqa: E402
 from services.similarity import calculate_similarity  # noqa: E402
 from services.skill_extractor import extract_skills_from_text, load_skills  # noqa: E402
 
@@ -35,19 +43,35 @@ def score_candidates(case: EvalCase, skills: List[str]) -> List[Dict]:
 
     for candidate in case.candidates:
         resume_skills = extract_skills_from_text(candidate.resume_text, skills)
+        evidence = gather_evidence(candidate.resume_text, skills)
         similarity = calculate_similarity(candidate.resume_text, case.jd_text)
-        coverage = calculate_keyword_coverage(resume_skills, jd_skills)
+        clarity = analyze_signal_to_noise(candidate.resume_text)["clarity_score"]
+        experience = detect_experience(candidate.resume_text, case.jd_text)
         missing = sorted(set(jd_skills) - set(resume_skills))
 
-        # The blend the dashboard shows the user, so that is what we score.
-        combined = similarity["final_score"] * 0.6 + coverage * 0.4
+        # Exactly the function the API uses, so the harness measures the number
+        # the user is actually shown.
+        fit = compute_fit(
+            semantic_score=similarity["final_score"],
+            coverage_score=weighted_coverage(evidence, jd_skills),
+            clarity_score=clarity,
+            detected_years=experience["detected_years"],
+            required_years=experience["required_years"],
+            jd_text=case.jd_text,
+            evidence_ratio_value=evidence_ratio(evidence),
+            unsupported=unsupported_skills(evidence),
+        )
 
         rows.append({
             "id": candidate.id,
             "relevance": candidate.relevance,
-            "semantic": round(similarity["final_score"], 2),
-            "coverage": round(coverage, 2),
-            "combined": round(combined, 2),
+            "semantic": fit.semantic,
+            "coverage": fit.coverage,
+            "clarity": fit.clarity,
+            "evidence_ratio": fit.evidence_ratio,
+            "level_multiplier": fit.level.multiplier,
+            "level_verdict": fit.level.verdict,
+            "combined": fit.overall,
             "skills": resume_skills,
             "missing": missing,
             "expected_skills": candidate.expected_skills,

@@ -49,7 +49,25 @@ def _run_sync(fn, *args):
     return loop.run_in_executor(None, fn, *args)
 
 
-@router.post("/analyze")
+@router.post(
+    "/analyze",
+    # The route returns a StreamingResponse, so FastAPI cannot infer the
+    # payload shape and AnalysisResponse was absent from the OpenAPI schema
+    # entirely — which meant no generated client types for the one endpoint
+    # that matters. Declaring it here documents the `complete` event body.
+    responses={
+        200: {
+            "description": (
+                "Server-sent events. Each line is `data: {...}` carrying either "
+                "`{event: 'progress', progress, message}`, "
+                "`{event: 'complete', progress: 100, result: AnalysisResponse}`, "
+                "or `{event: 'error', message}`."
+            ),
+            "model": AnalysisResponse,
+            "content": {"text/event-stream": {}},
+        }
+    },
+)
 @limiter.limit(settings.rate_limit)
 async def analyze_resume(
     request: Request,

@@ -1,8 +1,33 @@
 import axios from 'axios'
 
+import type {
+  AnalysisResponse,
+  AnalysisStreamEvent,
+  CoachingMode,
+  CoachingPayload,
+  CoachingResponse,
+  CoursesResponse,
+  JobsResponse,
+  SkillGapAnalysis,
+} from '../types/api'
+
+interface StreamHandlers {
+  onProgress?: (progress: number, message: string) => void
+  onComplete?: (result: AnalysisResponse) => void
+  onError?: (message: string) => void
+}
+
+interface RequestOptions {
+  signal?: AbortSignal
+}
+
 const BASE_URL = import.meta.env.VITE_API_URL || '/api/v1'
 
-function buildAnalysisForm(file, jobDescription, jobDescriptionFile) {
+function buildAnalysisForm(
+  file: File,
+  jobDescription: string | File | null,
+  jobDescriptionFile: File | null,
+): FormData {
   const formData = new FormData()
   formData.append('file', file)
 
@@ -24,15 +49,15 @@ function buildAnalysisForm(file, jobDescription, jobDescriptionFile) {
  * the stream running against state nobody was listening to.
  */
 export function analyzeResumeStream(
-  file,
-  jobDescription,
-  jobDescriptionFile = null,
-  { onProgress, onComplete, onError } = {},
-) {
+  file: File,
+  jobDescription: string | File | null,
+  jobDescriptionFile: File | null = null,
+  { onProgress, onComplete, onError }: StreamHandlers = {},
+): { done: Promise<void>; abort: () => void } {
   const controller = new AbortController()
 
   const done = (async () => {
-    let response
+    let response: Response
     try {
       response = await fetch(`${BASE_URL}/analyze`, {
         method: 'POST',
@@ -40,7 +65,7 @@ export function analyzeResumeStream(
         signal: controller.signal,
       })
     } catch (err) {
-      if (err.name === 'AbortError') return
+      if ((err as Error).name === 'AbortError') return
       throw new Error('Could not reach the server. Is the backend running?')
     }
 
@@ -55,7 +80,7 @@ export function analyzeResumeStream(
       throw new Error(detail)
     }
 
-    const reader = response.body.getReader()
+    const reader = response.body!.getReader()
     const decoder = new TextDecoder()
     let buffer = ''
 
@@ -66,15 +91,15 @@ export function analyzeResumeStream(
 
         buffer += decoder.decode(value, { stream: true })
         const parts = buffer.split('\n\n')
-        buffer = parts.pop()
+        buffer = parts.pop() ?? ''
 
         for (const part of parts) {
           const trimmed = part.trim()
           if (!trimmed.startsWith('data: ')) continue
 
-          let payload
+          let payload: AnalysisStreamEvent
           try {
-            payload = JSON.parse(trimmed.slice(6))
+            payload = JSON.parse(trimmed.slice(6)) as AnalysisStreamEvent
           } catch (err) {
             console.error('Malformed SSE payload', err)
             continue
@@ -86,7 +111,7 @@ export function analyzeResumeStream(
         }
       }
     } catch (err) {
-      if (err.name !== 'AbortError') throw err
+      if ((err as Error).name !== 'AbortError') throw err
     } finally {
       reader.cancel().catch(() => {})
     }
@@ -102,8 +127,12 @@ export function analyzeResumeStream(
  * generators on every visit to the tab — five of roughly twenty free requests
  * per minute, for output the user might never scroll to.
  */
-export async function generateCoaching(mode, payload, { signal } = {}) {
-  const response = await axios.post(
+export async function generateCoaching(
+  mode: CoachingMode,
+  payload: CoachingPayload,
+  { signal }: RequestOptions = {},
+): Promise<CoachingResponse> {
+  const response = await axios.post<CoachingResponse>(
     `${BASE_URL}/ai-coach/generate`,
     { mode, ...payload },
     { timeout: 60000, signal },
@@ -111,13 +140,20 @@ export async function generateCoaching(mode, payload, { signal } = {}) {
   return response.data
 }
 
-export async function getCoachingModes() {
-  const response = await axios.get(`${BASE_URL}/ai-coach/modes`, { timeout: 10000 })
+export async function getCoachingModes(): Promise<Array<{ id: CoachingMode; label: string }>> {
+  const response = await axios.get<{ modes: Array<{ id: CoachingMode; label: string }> }>(
+    `${BASE_URL}/ai-coach/modes`,
+    { timeout: 10000 },
+  )
   return response.data.modes
 }
 
-export async function getJobRecommendations(skills, location = 'India', { signal } = {}) {
-  const response = await axios.post(
+export async function getJobRecommendations(
+  skills: string[],
+  location = 'India',
+  { signal }: RequestOptions = {},
+): Promise<JobsResponse> {
+  const response = await axios.post<JobsResponse>(
     `${BASE_URL}/jobs`,
     { skills, location },
     { timeout: 65000, signal },
@@ -126,12 +162,12 @@ export async function getJobRecommendations(skills, location = 'India', { signal
 }
 
 export async function getCourseRecommendations(
-  skillGapAnalysis,
+  skillGapAnalysis: SkillGapAnalysis | null | undefined,
   jobDescription = '',
   resumeText = '',
-  { signal } = {},
-) {
-  const response = await axios.post(
+  { signal }: RequestOptions = {},
+): Promise<CoursesResponse> {
+  const response = await axios.post<CoursesResponse>(
     `${BASE_URL}/ai-coach/course-recommendations`,
     {
       skill_gap_analysis: skillGapAnalysis,

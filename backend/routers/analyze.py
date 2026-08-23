@@ -7,7 +7,8 @@ import time
 import json
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Request
 from fastapi.responses import StreamingResponse
-from main import limiter
+from core.config import settings
+from core.limiter import limiter
 from models.schemas import AnalysisResponse, TopMatch, LLMEvaluation, SectionScores, KeywordAnalysis, ExperienceInfo
 
 from typing import Optional
@@ -25,8 +26,8 @@ from services.ats_simulator import simulate_ats
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
-MAX_FILE_SIZE  = 5 * 1024 * 1024   # 5 MB
-MAX_JD_LENGTH  = 8000
+MAX_FILE_SIZE  = settings.max_file_size_bytes
+MAX_JD_LENGTH  = settings.max_jd_length
 
 
 def _run_sync(fn, *args):
@@ -36,7 +37,7 @@ def _run_sync(fn, *args):
 
 
 @router.post("/analyze")
-@limiter.limit("5/minute")
+@limiter.limit(settings.rate_limit)
 async def analyze_resume(
     request: Request,
     file: UploadFile = File(...),

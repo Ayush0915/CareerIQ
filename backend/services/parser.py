@@ -2,7 +2,7 @@ import os
 import re
 from utils.text_cleaner import clean_text
 
-# Try pdfplumber first (better for multi-column resumes), fallback to PyPDF2
+# Try pdfplumber first (better for multi-column resumes), fallback to pypdf
 try:
     import pdfplumber
     _HAS_PDFPLUMBER = True
@@ -10,10 +10,10 @@ except ImportError:
     _HAS_PDFPLUMBER = False
 
 try:
-    from PyPDF2 import PdfReader
-    _HAS_PYPDF2 = True
+    from pypdf import PdfReader
+    _HAS_PYPDF = True
 except ImportError:
-    _HAS_PYPDF2 = False
+    _HAS_PYPDF = False
 
 try:
     import docx as _docx
@@ -40,8 +40,8 @@ def _extract_pdf_pdfplumber(file_path: str) -> str:
     return "\n".join(text_parts)
 
 
-def _extract_pdf_pypdf2(file_path: str) -> str:
-    """Fallback: extract text using PyPDF2."""
+def _extract_pdf_pypdf(file_path: str) -> str:
+    """Fallback: extract text using pypdf."""
     text = ""
     try:
         reader = PdfReader(file_path)
@@ -50,17 +50,17 @@ def _extract_pdf_pypdf2(file_path: str) -> str:
             if extracted:
                 text += extracted + "\n"
     except Exception as e:
-        print(f"[parser] PyPDF2 error: {e}")
+        print(f"[parser] pypdf error: {e}")
     return text
 
 
 def extract_text_from_pdf(file_path: str) -> str:
-    """Try pdfplumber; fall back to PyPDF2."""
+    """Try pdfplumber; fall back to pypdf."""
     text = ""
     if _HAS_PDFPLUMBER:
         text = _extract_pdf_pdfplumber(file_path)
-    if not text.strip() and _HAS_PYPDF2:
-        text = _extract_pdf_pypdf2(file_path)
+    if not text.strip() and _HAS_PYPDF:
+        text = _extract_pdf_pypdf(file_path)
     return text
 
 

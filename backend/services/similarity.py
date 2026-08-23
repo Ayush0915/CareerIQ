@@ -1,15 +1,46 @@
-from fastembed import TextEmbedding
-from sklearn.metrics.pairwise import cosine_similarity
-import numpy as np
 import re
 
+import numpy as np
+from fastembed import TextEmbedding
+
+EMBEDDING_MODEL = "BAAI/bge-small-en-v1.5"
+
 _model = None
+
 
 def get_model():
     global _model
     if _model is None:
-        _model = TextEmbedding(model_name="BAAI/bge-small-en-v1.5")
+        _model = TextEmbedding(model_name=EMBEDDING_MODEL)
     return _model
+
+
+def warm_up() -> None:
+    """Load the embedding model and run one throwaway embedding.
+
+    Called from the FastAPI lifespan hook so the first real request does not
+    pay the model load. Safe to call more than once.
+    """
+    list(get_model().embed(["warm up"]))
+
+
+def _cosine(matrix: np.ndarray, vector: np.ndarray) -> np.ndarray:
+    """Cosine similarity of each row in ``matrix`` against ``vector``.
+
+    Replaces sklearn.metrics.pairwise.cosine_similarity, which was the only
+    thing scikit-learn was imported for — roughly 40MB of wheels for one dot
+    product.
+    """
+    matrix = np.asarray(matrix, dtype=np.float32)
+    vector = np.asarray(vector, dtype=np.float32).reshape(-1)
+
+    matrix_norms = np.linalg.norm(matrix, axis=1)
+    vector_norm = np.linalg.norm(vector)
+    denominator = matrix_norms * vector_norm
+    # Guard against a zero-length embedding rather than emitting NaN.
+    denominator = np.where(denominator == 0, 1e-12, denominator)
+
+    return (matrix @ vector) / denominator
 
 
 def simple_sentence_split(text: str):
@@ -44,10 +75,10 @@ def calculate_similarity(resume_text: str, jd_text: str, top_k: int = 5):
         filtered_sentences = sentences
 
     model = get_model()
-    jd_embedding = list(model.embed([jd_text]))
-    sentence_embeddings = list(model.embed(filtered_sentences))
+    jd_embedding = list(model.embed([jd_text]))[0]
+    sentence_embeddings = np.array(list(model.embed(filtered_sentences)))
 
-    similarities = cosine_similarity(sentence_embeddings, jd_embedding).flatten()
+    similarities = _cosine(sentence_embeddings, jd_embedding)
 
     sentence_scores = list(zip(filtered_sentences, similarities))
     sentence_scores.sort(key=lambda x: x[1], reverse=True)

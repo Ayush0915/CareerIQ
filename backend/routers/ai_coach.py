@@ -2,7 +2,8 @@ import logging
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 from typing import List, Optional, Dict
-from main import limiter
+from core.config import settings
+from core.limiter import limiter
 
 from services.ai_coach import (
     rewrite_bullets,
@@ -48,7 +49,7 @@ class LinkedInRequest(BaseModel):
 
 
 @router.post("/ai-coach", response_model=AICoachResponse)
-@limiter.limit("5/minute")
+@limiter.limit(settings.rate_limit)
 async def ai_coach(request: Request, req: AICoachRequest):
     """Full coaching bundle — bullets, cover letter, roadmap, interview prep, LinkedIn."""
     import asyncio
@@ -88,7 +89,7 @@ async def ai_coach(request: Request, req: AICoachRequest):
 
 
 @router.post("/ai-coach/interview-prep")
-@limiter.limit("5/minute")
+@limiter.limit(settings.rate_limit)
 async def interview_prep_only(request: Request, req: InterviewPrepRequest):
     """Standalone interview prep questions endpoint."""
     import asyncio
@@ -108,7 +109,7 @@ async def interview_prep_only(request: Request, req: InterviewPrepRequest):
 
 
 @router.post("/ai-coach/linkedin")
-@limiter.limit("5/minute")
+@limiter.limit(settings.rate_limit)
 async def linkedin_only(request: Request, req: LinkedInRequest):
     """Standalone LinkedIn summary generator."""
     import asyncio
@@ -136,7 +137,7 @@ class CourseRecommendationsRequest(BaseModel):
 
 
 @router.post("/ai-coach/course-recommendations")
-@limiter.limit("5/minute")
+@limiter.limit(settings.rate_limit)
 async def course_recommendations_endpoint(request: Request, req: CourseRecommendationsRequest):
     """Generate dynamic, LLM-powered course recommendations for skill gaps."""
     import asyncio

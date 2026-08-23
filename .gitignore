@@ -35,6 +35,20 @@ __pycache__/
 vite.config.js.timestamp-*
 
 # =========================
+# 🧹 TOOLING CACHES
+# =========================
+.ruff_cache/
+.pytest_cache/
+.uv/
+
+# =========================
+# 🗑️  PENDING DELETION
+# =========================
+# Files superseded during the upgrade. This environment cannot delete files
+# on disk, so they are moved here instead — safe to remove the folder.
+_to_delete/
+
+# =========================
 # 💻 IDE / OS
 # =========================
 .vscode/

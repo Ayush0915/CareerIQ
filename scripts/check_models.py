@@ -7,6 +7,8 @@ what is currently available, then set PRIMARY_MODEL and FALLBACK_MODELS in
 backend/.env.
 
     python scripts/check_models.py                  # structured-output models
+    python scripts/check_models.py --free           # zero-cost models only
+    python scripts/check_models.py --validate       # do my configured IDs exist?
     python scripts/check_models.py --all            # every model
     python scripts/check_models.py --probe MODEL_ID # send a real test request
 
@@ -25,6 +27,7 @@ import argparse
 import json
 import os
 import sys
+from pathlib import Path
 from typing import Any, Dict, List
 
 import httpx
@@ -140,16 +143,62 @@ def probe(model_id: str) -> int:
     return 0
 
 
+def validate_configured() -> int:
+    """Check the IDs in settings against the live catalogue.
+
+    A model ID that looks plausible but does not exist fails at the first real
+    request with an unhelpful error. Checking them up front turns that into a
+    one-line answer.
+    """
+    sys.path.insert(0, str(Path(__file__).parent.parent / "backend"))
+    from core.config import settings
+
+    catalogue = {m["id"]: m for m in fetch_models()}
+
+    chains = {
+        "PRIMARY_MODEL / FALLBACK_MODELS": settings.model_chain,
+        "FAST_PRIMARY_MODEL / FAST_FALLBACK_MODELS": settings.fast_model_chain,
+    }
+
+    problems = 0
+    print()
+    for label, chain in chains.items():
+        print(f"{label}")
+        for model_id in chain:
+            entry = catalogue.get(model_id)
+            if entry is None:
+                print(f"  ✗ {model_id:<50} DOES NOT EXIST")
+                problems += 1
+                continue
+            cost = estimated_cost(entry)
+            tags = []
+            tags.append("free" if cost == 0 else f"${cost:.5f}/call")
+            tags.append("schema" if supports_structured(entry) else "no schema")
+            print(f"  ✓ {model_id:<50} {', '.join(tags)}")
+        print()
+
+    if problems:
+        print(f"{problems} configured model ID(s) do not exist. Requests using them")
+        print("will fail. Fix backend/.env, then re-run this check.\n")
+        return 1
+
+    print("All configured model IDs exist.\n")
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--all", action="store_true", help="include models without structured outputs")
     parser.add_argument("--free", action="store_true", help="only zero-cost models")
     parser.add_argument("--limit", type=int, default=30)
     parser.add_argument("--probe", metavar="MODEL_ID", help="send one real test request")
+    parser.add_argument("--validate", action="store_true", help="check configured IDs exist")
     args = parser.parse_args()
 
     if args.probe:
         return probe(args.probe)
+    if args.validate:
+        return validate_configured()
 
     models = fetch_models()
     if not args.all:

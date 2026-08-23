@@ -44,12 +44,21 @@ class Settings(BaseSettings):
     # output is validated rather than guaranteed. Free models are also rate
     # limited to roughly 20 requests/minute and 200/day per account, and may be
     # withdrawn without notice.
+    # Every ID below was read from GET /api/v1/models, not from a model's
+    # display name. Verify before trusting them:
+    #
+    #   python scripts/check_models.py --validate
+    #
+    # Evaluation chain: needs reasoning quality and a long context. The primary
+    # is the only free model that both enforces schemas and has room for a
+    # full resume plus JD.
     primary_model: str = "dots-studio/dots-3-note-preview:free"
-    fallback_models: str = "nvidia/nemotron-3-super:free,z-ai/glm-5.2:free"
-    # Chain for the generative coaching features, where the quality bar is
-    # lower and the call volume is higher.
+    fallback_models: str = "thinkingmachines/inkling:free,nvidia/nemotron-3.5-lightning:free"
+
+    # Coaching chain: short generative outputs, higher call volume, lower
+    # quality bar — throughput matters more than depth here.
     fast_primary_model: str = "nvidia/nemotron-3.5-lightning:free"
-    fast_fallback_models: str = "google/gemma-4-26b-a4b:free"
+    fast_fallback_models: str = "liquid/lfm-2.5-2.6b:free,thinkingmachines/inkling-small:free"
 
     # How to request JSON: "auto" walks the ladder and remembers what worked.
     # Force a rung with "strict", "json_object" or "prompt".

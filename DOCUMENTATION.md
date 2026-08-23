@@ -34,15 +34,15 @@ CareerIQ is designed as a decoupled, high-performance web application consisting
              ▼                          ▼                          ▼
    ┌───────────────────┐      ┌───────────────────┐      ┌───────────────────┐
    │ Fast NLP Pipeline │      │ Async LLM Engine  │      │ Live Job Fetcher  │
-   │ (SentenceTransformers│     │ (Groq Llama 3.3)  │      │ (RapidAPI JSearch)│
+   │ (fastembed / bge)   │      │ (OpenRouter)      │      │ (RapidAPI JSearch)│
    └───────────────────┘      └───────────────────┘      └───────────────────┘
 ```
 
 ### 🛠 Tech Stack
 - **Frontend**: React 18 SPA, Vite, Tailwind CSS, Lucide React icons
 - **Backend**: Python 3.10+, FastAPI microservice, Pydantic data schemas, Uvicorn ASGI server
-- **AI Core / LLM Engine**: **Groq Llama 3.3-70b Versatile** (`llama-3.3-70b-versatile`) for deep resume evaluations, ATS simulation checks, interview question generation, and AI career coaching
-- **NLP & Similarity**: SentenceTransformers for local dense vector semantic matching & Cosine similarity
+- **AI Core / LLM Engine**: **OpenRouter** (OpenAI-compatible) with JSON-schema structured outputs, `provider.require_parameters` so only schema-enforcing endpoints are used, and model-level fallback across vendors. Model IDs are configured in `.env` — run `python scripts/check_models.py` to pick one
+- **NLP & Similarity**: fastembed (`BAAI/bge-small-en-v1.5`) with a numpy cosine implementation
 - **Job Intelligence**: RapidAPI JSearch API integration
 
 ---
@@ -64,7 +64,7 @@ CareerIQ/
 │   ├── services/
 │   │   ├── parser.py          # PDF/DOCX text extractors with fallbacks
 │   │   ├── ats_simulator.py   # 8-point ATS check engine with evidence extraction
-│   │   ├── llm_evaluator.py   # Groq Llama 3.3 orchestration & prompt sanitization
+│   │   ├── llm_evaluator.py   # Schema-constrained evaluation + TTL cache
 │   │   ├── job_fetcher.py     # Real-time job search & skill-match calculator
 │   │   ├── similarity.py      # Vector similarity scoring via SentenceTransformers
 │   │   ├── skill_extractor.py # Regex + taxonomy skill extraction
@@ -102,10 +102,10 @@ CareerIQ/
 ### Backend (`backend/.env`)
 Create `backend/.env` based on `backend/.env.example`:
 ```env
-GROQ_API_KEY=gsk_your_groq_api_key_here
+OPENROUTER_API_KEY=sk-or-v1-your_key_here
 RAPIDAPI_KEY=your_rapidapi_jsearch_key_here
 ```
-- **GROQ_API_KEY**: Required for Llama 3.3 AI features. Get a free key at [console.groq.com](https://console.groq.com).
+- **OPENROUTER_API_KEY**: Required for all AI features. Get one at [openrouter.ai/keys](https://openrouter.ai/keys).
 - **RAPIDAPI_KEY**: Required for live job search. Get a free key at [rapidapi.com](https://rapidapi.com).
 
 ### Frontend (`frontend/.env`)
@@ -138,7 +138,7 @@ python -m venv venv
 source venv/bin/activate
 
 # Install requirements
-pip install -r requirements.txt
+uv pip install -r pyproject.toml
 
 # Create .env file and fill keys
 cp .env.example .env
@@ -237,10 +237,10 @@ Fetches real-time matching jobs.
 4. Set configurations:
    - **Root Directory**: `backend`
    - **Environment**: `Python 3`
-   - **Build Command**: `pip install -r requirements.txt`
+   - **Build Command**: `uv pip install --system -r pyproject.toml`
    - **Start Command**: `uvicorn main:app --host 0.0.0.0 --port $PORT --workers 1`
 5. Add Environment Variables:
-   - `GROQ_API_KEY`: `your_key`
+   - `OPENROUTER_API_KEY`: `your_key`
    - `RAPIDAPI_KEY`: `your_key`
 6. Click **Create Web Service** and note your URL (e.g. `https://careeriq-backend.onrender.com`).
 

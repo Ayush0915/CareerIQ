@@ -9,7 +9,7 @@ from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from core.config import settings
 from core.limiter import limiter
-from models.schemas import AnalysisResponse, TopMatch, LLMEvaluation, SectionScores, KeywordAnalysis, ExperienceInfo
+from models.schemas import AnalysisResponse, ExperienceInfo, LLMEvaluation, TopMatch
 
 from typing import Optional
 from services.parser import parse_resume, extract_text_from_pdf, extract_text_from_docx
@@ -32,7 +32,7 @@ MAX_JD_LENGTH  = settings.max_jd_length
 
 def _run_sync(fn, *args):
     """Run a synchronous function in the default thread pool (non-blocking)."""
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     return loop.run_in_executor(None, fn, *args)
 
 
@@ -158,9 +158,6 @@ async def analyze_resume(
             experience_info       = None
             section_scores_result = None
 
-            async def _run_llm():
-                return await _run_sync(llm_master_evaluate, resume_raw, jd)
-
             async def _run_exp():
                 return await _run_sync(detect_experience, resume_raw, jd)
 
@@ -168,49 +165,32 @@ async def analyze_resume(
                 sections = await _run_sync(parse_sections, resume_raw)
                 return await _run_sync(score_sections, sections)
 
-            try:
-                llm_raw, exp_raw, section_raw = await asyncio.gather(
-                    _run_llm(), _run_exp(), _run_sections(),
-                    return_exceptions=True
-                )
+            # The LLM call is awaited directly — it is network-bound, so it no
+            # longer occupies a thread from the executor.  The two CPU-bound
+            # helpers still go through the pool.
+            llm_raw, exp_raw, section_raw = await asyncio.gather(
+                llm_master_evaluate(resume_raw, jd),
+                _run_exp(),
+                _run_sections(),
+                return_exceptions=True,
+            )
 
-                if isinstance(llm_raw, dict) and "overall_score" in llm_raw:
-                    llm_result = LLMEvaluation(
-                        overall_score            = llm_raw.get("overall_score",   0),
-                        experience_level         = llm_raw.get("experience_level","unknown"),
-                        years_detected           = str(llm_raw.get("years_detected","unknown")),
-                        section_scores           = SectionScores(**{
-                            k: llm_raw.get("section_scores", {}).get(k, 0)
-                            for k in ["experience","skills","education","projects","summary"]
-                        }),
-                        keyword_analysis         = KeywordAnalysis(**{
-                            k: llm_raw.get("keyword_analysis",{}).get(k, [])
-                            for k in ["present","missing_critical","missing_recommended"]
-                        }),
-                        grammar_issues           = llm_raw.get("grammar_issues",    []),
-                        cliches_found            = llm_raw.get("cliches_found",     []),
-                        readability_score        = llm_raw.get("readability_score",  0),
-                        passive_voice_count      = llm_raw.get("passive_voice_count",0),
-                        quantified_achievements  = llm_raw.get("quantified_achievements",0),
-                        section_feedback         = llm_raw.get("section_feedback",  {}),
-                        top_improvements         = llm_raw.get("top_improvements",  []),
-                        ats_compatibility        = llm_raw.get("ats_compatibility",  0),
-                        job_match_reasoning      = llm_raw.get("job_match_reasoning",""),
-                        interview_questions      = llm_raw.get("interview_questions",[]),
-                        resume_strengths         = llm_raw.get("resume_strengths",  []),
-                        salary_insight           = llm_raw.get("salary_insight",    ""),
-                        competition_level        = llm_raw.get("competition_level", "medium"),
-                        fit_verdict              = llm_raw.get("fit_verdict",       "unknown"),
-                    )
+            # llm_master_evaluate returns a validated LLMEvaluation or None; a
+            # provider-enforced schema means there is nothing left to coerce.
+            if isinstance(llm_raw, LLMEvaluation):
+                llm_result = llm_raw
+            elif isinstance(llm_raw, Exception):
+                logger.warning("LLM evaluation failed: %s", llm_raw)
 
-                if isinstance(exp_raw, dict):
-                    experience_info = ExperienceInfo(**exp_raw)
+            if isinstance(exp_raw, dict):
+                experience_info = ExperienceInfo(**exp_raw)
+            elif isinstance(exp_raw, Exception):
+                logger.warning("Experience detection failed: %s", exp_raw)
 
-                if isinstance(section_raw, dict):
-                    section_scores_result = section_raw
-
-            except Exception as ai_err:
-                logger.warning(f"AI evaluation partial failure: {ai_err}")
+            if isinstance(section_raw, dict):
+                section_scores_result = section_raw
+            elif isinstance(section_raw, Exception):
+                logger.warning("Section scoring failed: %s", section_raw)
 
             elapsed = round(time.perf_counter() - t0, 2)
             logger.info(f"Analysis complete in {elapsed}s | skills={len(resume_skills)} | score={sim['final_score']}")

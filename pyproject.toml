@@ -47,6 +47,7 @@ packages = []
 testpaths = ["tests"]
 pythonpath = ["backend"]
 filterwarnings = ["ignore::DeprecationWarning"]
+asyncio_mode = "auto"
 
 [tool.ruff]
 line-length = 100

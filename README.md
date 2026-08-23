@@ -8,7 +8,7 @@
 [![React](https://img.shields.io/badge/React-18-61DAFB?style=flat-square&logo=react&logoColor=black)](https://react.dev)
 [![Vite](https://img.shields.io/badge/Vite-5.0-646CFF?style=flat-square&logo=vite&logoColor=white)](https://vitejs.dev)
 [![TailwindCSS](https://img.shields.io/badge/Tailwind-3.4-38B2AC?style=flat-square&logo=tailwind-css&logoColor=white)](https://tailwindcss.com)
-[![Groq](https://img.shields.io/badge/Groq-Llama%203.3--70b-F54E00?style=flat-square)](https://groq.com)
+[![OpenRouter](https://img.shields.io/badge/OpenRouter-structured%20outputs-6467F2?style=flat-square)](https://openrouter.ai)
 [![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)](LICENSE)
 
 </div>
@@ -19,16 +19,16 @@
 
 Over **75% of job applications** are filtered out by Applicant Tracking Systems (ATS) before reaching human recruiters — often due to missing keywords, non-standard formatting, or unquantified achievements. 
 
-**CareerIQ** bridges this gap by combining fast local NLP NLP algorithms with **Llama 3.3-70b AI intelligence**. Upload any PDF or DOCX resume alongside a target Job Description to get an immediate, actionable report.
+**CareerIQ** bridges this gap by combining fast local NLP with **schema-constrained LLM evaluation via OpenRouter**. Upload any PDF or DOCX resume alongside a target Job Description to get an immediate, actionable report.
 
 ---
 
 ## ✨ Features
 
-- 📊 **Overall Fit & Semantic Score**: High-precision vector similarity matching using `all-MiniLM-L6-v2`.
+- 📊 **Overall Fit & Semantic Score**: Dense vector similarity using `BAAI/bge-small-en-v1.5` via fastembed.
 - 🛡️ **8-Point ATS Simulation with Text Evidence**: Evaluates contact info, section headers, keyword density, dates, formatting, length, and quantification with concrete evidence snippets.
 - 🎯 **Skill Gap Analysis**: Categorizes missing skills into *Critical*, *Important*, and *Optional* gaps with recommended courses.
-- 🤖 **AI Career Coaching (Llama 3.3-70b)**:
+- 🤖 **AI Career Coaching**:
   - *Bullet Rewriter*: Converts weak experience bullets into quantified, action-verb achievements.
   - *Interview Generator*: Produces role-tailored technical & behavioral interview questions.
   - *LinkedIn Optimizer*: Crafts keyword-dense, professional "About" sections.
@@ -46,7 +46,7 @@ flowchart TD
     C --> D[Fast Local Analysis: Keywords, Similarity, Skill Gaps, Signal/Noise]
     C --> E[8-Point ATS Simulation with Evidence]
     C --> F{asyncio.gather Parallel Execution}
-    F -->|Branch 1| G[LLM Master Evaluation via Groq Llama 3.3-70b]
+    F -->|Branch 1| G[LLM Master Evaluation via OpenRouter, schema-enforced]
     F -->|Branch 2| H[Experience Detection]
     F -->|Branch 3| I[Section Parsing & Scoring]
     D --> J[Merge & Respond AnalysisResponse]
@@ -74,11 +74,11 @@ python -m venv venv
 # On Linux/macOS: source venv/bin/activate
 
 # Install dependencies
-pip install -r requirements.txt
+uv pip install -r pyproject.toml
 
 # Configure environment variables
 cp .env.example .env
-# Edit .env and insert your GROQ_API_KEY and RAPIDAPI_KEY
+# Edit .env and insert your OPENROUTER_API_KEY (and optionally RAPIDAPI_KEY)
 
 # Start backend server
 uvicorn main:app --reload --port 8000

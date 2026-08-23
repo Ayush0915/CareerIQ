@@ -45,6 +45,18 @@ class ExperienceInfo(BaseModel):
     gap_years:         int
 
 
+class SectionFeedback(BaseModel):
+    """Typed rather than Dict[str, str].
+
+    Strict JSON-schema mode cannot express an open-ended map, and naming the
+    sections also tells the model exactly which ones to comment on.
+    """
+    experience: str
+    skills:     str
+    projects:   str
+    summary:    str
+
+
 class LLMEvaluation(BaseModel):
     overall_score:           float
     experience_level:        str
@@ -56,16 +68,15 @@ class LLMEvaluation(BaseModel):
     readability_score:       float
     passive_voice_count:     int
     quantified_achievements: int
-    section_feedback:        Dict[str, str]
+    section_feedback:        SectionFeedback
     top_improvements:        List[str]
     ats_compatibility:       float
     job_match_reasoning:     str
-    # New fields
-    interview_questions: List[str] = []
-    resume_strengths:    List[str] = []
-    salary_insight:      str = ""
-    competition_level:   str = "medium"
-    fit_verdict:         str = "unknown"
+    interview_questions:     List[str]
+    resume_strengths:        List[str]
+    salary_insight:          str
+    competition_level:       str
+    fit_verdict:             str
 
 
 class ATSCheckResult(BaseModel):

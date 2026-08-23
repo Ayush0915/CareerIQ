@@ -12,6 +12,11 @@ logger = logging.getLogger(__name__)
 RAPIDAPI_KEY = os.environ.get("RAPIDAPI_KEY")
 logger.info(f"RAPIDAPI_KEY loaded: {bool(RAPIDAPI_KEY)}")
 
+# Per-request timeout for one JSearch leg, and the total budget for both legs
+# running concurrently.  Kept comfortably under the 65s client timeout.
+JSEARCH_TIMEOUT_S = 20
+JOB_FETCH_BUDGET_S = 45
+
 SKILL_TO_ROLE = {
     frozenset(['python', 'fastapi', 'django', 'flask']): 'Backend Developer',
     frozenset(['react', 'javascript', 'typescript', 'vue', 'angular']): 'Frontend Developer',
@@ -59,7 +64,7 @@ def fetch_jsearch_jobs_sync(keywords: List[str], location: str = "India") -> Lis
                 "X-RapidAPI-Key": RAPIDAPI_KEY,
                 "X-RapidAPI-Host": "jsearch.p.rapidapi.com"
             },
-            timeout=60,
+            timeout=JSEARCH_TIMEOUT_S,
         )
         logger.info(f"JSearch status: {response.status_code}")
         
@@ -179,19 +184,37 @@ async def fetch_all_jobs(resume_skills: List[str], location: str = "India") -> L
     all_jobs = []
 
     if RAPIDAPI_KEY:
-        loop = asyncio.get_event_loop()
-        # Run sync function in thread pool to avoid blocking
-        india_jobs = await loop.run_in_executor(
+        loop = asyncio.get_running_loop()
+        # Both searches run concurrently under one budget.  Running them in
+        # sequence with a 60s timeout each meant a 120s worst case, which the
+        # 65s client timeout could never wait out.
+        local_task = loop.run_in_executor(
             None, fetch_jsearch_jobs_sync, keywords, location
         )
-        logger.info(f"India jobs: {len(india_jobs)}")
-        all_jobs.extend(india_jobs)
-
-        remote_jobs = await loop.run_in_executor(
+        remote_task = loop.run_in_executor(
             None, fetch_jsearch_jobs_sync, keywords, "Remote"
         )
-        logger.info(f"Remote jobs: {len(remote_jobs)}")
-        all_jobs.extend(remote_jobs)
+        try:
+            local_jobs, remote_jobs = await asyncio.wait_for(
+                asyncio.gather(local_task, remote_task, return_exceptions=True),
+                timeout=JOB_FETCH_BUDGET_S,
+            )
+        except asyncio.TimeoutError:
+            logger.warning("Job search exceeded the %ss budget", JOB_FETCH_BUDGET_S)
+            local_jobs, remote_jobs = [], []
+
+        for label, result in (("local", local_jobs), ("remote", remote_jobs)):
+            if isinstance(result, Exception):
+                logger.error("JSearch %s leg failed: %s", label, result)
+                continue
+            logger.info("%s jobs: %d", label, len(result))
+            all_jobs.extend(result)
+
+        # Fall back to the free source when the paid one errors out, not only
+        # when the key is absent.
+        if not all_jobs:
+            logger.info("JSearch returned nothing — falling back to Remotive")
+            all_jobs = await fetch_remotive_jobs(keywords)
     else:
         all_jobs = await fetch_remotive_jobs(keywords)
 

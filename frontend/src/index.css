@@ -54,6 +54,27 @@ body {
   border-color: #D8DCFC;
 }
 
+/* ── Compatibility layer ──────────────────────────────────────────────
+   CourseRecommendations.jsx was written against an earlier design system
+   whose class names were never carried over, so the whole Resources tab
+   rendered unstyled. These aliases restore it. Phase 6 consolidates the
+   four coexisting styling systems and deletes this block.               */
+.card {
+  background: #ffffff;
+  border: 1px solid #E8EAF0;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.05), 0 4px 14px rgba(81,71,229,0.07);
+  transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+}
+.card-lift:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04);
+  transform: translateY(-2px);
+  border-color: #D8DCFC;
+}
+.gradient-primary {
+  background: linear-gradient(135deg, #5147E5, #8B7CF6);
+}
+
 /* ── Skeleton loader ── */
 .skeleton-box {
   background: linear-gradient(90deg, #F0F1F5 25%, #E4E5EC 50%, #F0F1F5 75%);

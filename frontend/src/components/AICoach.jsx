@@ -53,16 +53,20 @@ export default function AICoach({ analysisData }) {
     setLoading(true)
     setError(null)
     try {
+      // These field names must match AnalysisResponse on the backend.
+      // `jd_text` never existed, so every coaching call was made with no job
+      // description and no resume.
       const res = await getAICoaching({
-        weak_phrases: analysisData.signal_noise.weak_phrases_found,
-        matching_skills: analysisData.matching_skills,
-        missing_skills: analysisData.missing_skills,
-        job_description: analysisData.jd_text || '',
-        resume_text: '',
+        weak_phrases: analysisData.signal_noise?.weak_phrases_found ?? [],
+        matching_skills: analysisData.matching_skills ?? [],
+        missing_skills: analysisData.missing_skills ?? [],
+        job_description: analysisData.job_description || '',
+        resume_text: analysisData.resume_text || '',
+        experience_level: analysisData.experience_info?.level || 'mid',
       })
       setResult(res)
     } catch (e) {
-      setError('AI Coach failed. Check your GROQ_API_KEY in .env file.')
+      setError('Could not generate coaching right now. Check the API key in backend/.env, then try again.')
     } finally {
       setLoading(false)
     }

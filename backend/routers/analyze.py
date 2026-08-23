@@ -127,8 +127,11 @@ async def analyze_resume(
             await asyncio.sleep(0.01)
 
             # ── Phase 2: Skill extraction ────────────────────────────────────
+            # Both sides are passed RAW: extract_skills_from_text normalizes
+            # internally, so the resume and the JD can never be normalized
+            # differently again.
             skills_list   = load_skills()
-            resume_skills = extract_skills_from_text(resume_clean, skills_list)
+            resume_skills = extract_skills_from_text(resume_raw, skills_list)
             jd_skills     = extract_skills_from_text(jd, skills_list)
 
             # Emit Phase 2 Progress Event (50%)

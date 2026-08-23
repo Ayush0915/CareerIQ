@@ -2,6 +2,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import logging
+import os
 import re
 import time
 import uuid
@@ -22,8 +23,32 @@ logging.basicConfig(
 logger = logging.getLogger("main")
 
 # ── Rate limiter ──────────────────────────────────────────────────────────────
+# Behind Vercel/Render the socket peer is the proxy, not the caller, so keying
+# on it puts every user in one shared bucket.  When TRUST_PROXY_HEADERS is on we
+# key on the client address the proxy forwarded instead.
+#
+# Caveat, stated plainly: X-Forwarded-For is caller-supplied and therefore
+# spoofable by anyone who can reach the app directly.  Only enable this when the
+# app is genuinely behind a proxy that overwrites the header, and keep it off
+# for local development.
+TRUST_PROXY_HEADERS = os.environ.get("TRUST_PROXY_HEADERS", "false").lower() in {
+    "1", "true", "yes", "on",
+}
+
+
+def client_ip(request: Request) -> str:
+    if TRUST_PROXY_HEADERS:
+        forwarded = request.headers.get("x-forwarded-for", "")
+        if forwarded:
+            return forwarded.split(",")[0].strip()
+        real_ip = request.headers.get("x-real-ip", "")
+        if real_ip:
+            return real_ip.strip()
+    return get_remote_address(request)
+
+
 # Shared limiter instance — imported by routers via `from main import limiter`
-limiter = Limiter(key_func=get_remote_address, default_limits=[])
+limiter = Limiter(key_func=client_ip, default_limits=[])
 
 from routers import analyze, ai_coach, jobs
 

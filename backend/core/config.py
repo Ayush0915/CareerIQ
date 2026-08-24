@@ -55,20 +55,46 @@ class Settings(BaseSettings):
     # limited to roughly 20 requests/minute and 200/day per account, and may be
     # withdrawn without notice.
     # Every ID below was read from GET /api/v1/models, not from a model's
-    # display name. Verify before trusting them:
+    # display name, AND then called for real. Existing in the catalogue is not
+    # the same as being callable: thinkingmachines/inkling:free and
+    # inkling-small:free sat in these defaults while returning
+    # "403 — only available on agentic harnesses" to every API request. They
+    # passed --validate the entire time, because --validate only asked whether
+    # the ID existed. Verify with both:
     #
-    #   python scripts/check_models.py --validate
+    #   python scripts/check_models.py --validate --deep
+    #   python scripts/check_models.py --audit
     #
-    # Evaluation chain: needs reasoning quality and a long context. The primary
-    # is the only free model that both enforces schemas and has room for a
-    # full resume plus JD.
-    primary_model: str = "dots-studio/dots-3-note-preview:free"
-    fallback_models: str = "thinkingmachines/inkling:free,nvidia/nemotron-3.5-lightning:free"
+    # Evaluation chain: needs reasoning quality and a long context. Every model
+    # here advertises structured outputs, so the strict rung of the ladder can
+    # hold all the way down the chain instead of degrading at the first
+    # fallback.
+    # Chosen by running the real evaluation schema against every reachable free
+    # model and keeping the ones that returned a valid LLMEvaluation:
+    #
+    #   nemotron-3-super-120b   VALID    9.5s   934 tokens
+    #   nemotron-3-nano-30b     VALID   18.1s   633 tokens
+    #   nemotron-3-ultra-550b   VALID   58.2s   877 tokens
+    #   dots-3-note-preview     truncated at 4000 tokens   <- was the primary
+    #   nemotron-nano-9b-v2     truncated at 4000 tokens   <- was fast primary
+    #   openrouter/free         truncated at 4000 tokens
+    #   poolside/laguna-s-2.1   19 schema violations
+    #   z-ai/glm-5.2            429, saturated
+    #
+    # Reproduce with `python scripts/check_models.py --audit`. Bigger is not
+    # better here: the 550B model is six times slower than the 120B for an
+    # equally valid object.
+    primary_model: str = "nvidia/nemotron-3-super-120b-a12b:free"
+    fallback_models: str = (
+        "nvidia/nemotron-3-nano-30b-a3b:free,nvidia/nemotron-3-ultra-550b-a55b:free"
+    )
 
     # Coaching chain: short generative outputs, higher call volume, lower
     # quality bar — throughput matters more than depth here.
-    fast_primary_model: str = "nvidia/nemotron-3.5-lightning:free"
-    fast_fallback_models: str = "liquid/lfm-2.5-2.6b:free,thinkingmachines/inkling-small:free"
+    fast_primary_model: str = "nvidia/nemotron-3-nano-30b-a3b:free"
+    fast_fallback_models: str = (
+        "nvidia/nemotron-3-super-120b-a12b:free,nvidia/nemotron-3.5-lightning:free"
+    )
 
     # How to request JSON: "auto" walks the ladder and remembers what worked.
     # Force a rung with "strict", "json_object" or "prompt".
@@ -99,8 +125,15 @@ class Settings(BaseSettings):
         return self._chain(self.fast_primary_model, self.fast_fallback_models)
 
     # ── Networking ────────────────────────────────────────────────────────
+    # The hyphen used to be mandatory ("career-iq.*"), so a Vercel project named
+    # "careeriq" produced a domain this never matched and every browser request
+    # died on CORS — with a backend that looked perfectly healthy from curl.
+    # "career-?iq" accepts both spellings, and the trailing class covers Vercel
+    # preview domains (careeriq-git-branch-user.vercel.app).
+    # Override with CORS_ALLOW_ORIGIN_REGEX once the real domain is known.
     cors_allow_origin_regex: str = (
-        r"https://career-iq.*\.vercel\.app|http://localhost:\d+|http://127\.0\.0\.1:\d+"
+        r"https://career-?iq[a-z0-9-]*\.vercel\.app"
+        r"|http://localhost:\d+|http://127\.0\.0\.1:\d+"
     )
     # X-Forwarded-For is caller-supplied and therefore spoofable by anyone who
     # can reach the app directly.  Enable only when genuinely behind a proxy

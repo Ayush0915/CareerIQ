@@ -23,6 +23,46 @@ interface RequestOptions {
 
 const BASE_URL = import.meta.env.VITE_API_URL || '/api/v1'
 
+// /health sits at the server root, not under the versioned API prefix.
+const HEALTH_URL = `${BASE_URL.replace(/\/api\/v\d+\/?$/, '')}/health`
+
+let wakeInFlight: Promise<boolean> | null = null
+
+/**
+ * Nudges the backend awake and resolves when it answers.
+ *
+ * Render's free tier stops the instance after 15 minutes idle and takes about
+ * a minute to come back, model load included. Every request timeout in this
+ * file is 45-65s, so the first analysis after a quiet period was guaranteed to
+ * abort before the server finished booting — and the user saw a timeout rather
+ * than a cold start.
+ *
+ * Calling this on mount spends that minute while the user is still choosing a
+ * file and pasting a job description, which is already the slowest part of the
+ * flow for them.
+ *
+ * Deliberately never rejects: a failed wake-up is not a failed analysis, and
+ * the real request will surface a genuine outage on its own. Concurrent callers
+ * share one in-flight request.
+ */
+export function wakeBackend(timeoutMs = 90000): Promise<boolean> {
+  if (wakeInFlight) return wakeInFlight
+
+  wakeInFlight = axios
+    .get(HEALTH_URL, { timeout: timeoutMs })
+    .then(() => true)
+    .catch(() => false)
+    .finally(() => {
+      // Allow a later retry once this attempt settles — an instance can spin
+      // down again during a long session.
+      setTimeout(() => {
+        wakeInFlight = null
+      }, 60000)
+    })
+
+  return wakeInFlight
+}
+
 function buildAnalysisForm(
   file: File,
   jobDescription: string | File | null,

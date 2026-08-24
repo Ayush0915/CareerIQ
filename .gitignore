@@ -3,6 +3,12 @@
 # =========================
 .env
 .env.*
+# ...but NOT the templates. ".env.*" was swallowing .env.example, so both
+# backend/.env.example and frontend/.env.example were untracked: a fresh clone
+# — including the one Render builds from — had no template to copy, and the
+# commit that claimed to "add env templates" never added them.
+!.env.example
+!**/.env.example
 
 # =========================
 # 🟢 FRONTEND (React + Vite)

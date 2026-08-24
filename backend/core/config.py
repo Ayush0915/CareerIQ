@@ -148,6 +148,12 @@ class Settings(BaseSettings):
     # ── Behaviour ─────────────────────────────────────────────────────────
     warm_up_embeddings: bool = True
 
+    # onnxruntime inference threads. 0 lets it size the pool from the host's
+    # core count, which is right on a machine you own and wrong on a shared
+    # container, where that count has nothing to do with your CPU share. Set
+    # this to 1 on a fractional-CPU instance.
+    embedding_threads: int = 0
+
     # fastembed otherwise caches into the system temp directory, which Windows
     # clears — costing a silent 67MB re-download on some later run.
     model_cache_dir: str = str(Path.home() / ".cache" / "careeriq" / "models")

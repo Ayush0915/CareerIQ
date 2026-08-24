@@ -1,4 +1,4 @@
-﻿name: CI
+name: CI
 
 on:
   push:
@@ -19,13 +19,11 @@ jobs:
     timeout-minutes: 15
 
     env:
-      # Two reasons this is set explicitly rather than left to the default.
-      # One: it gives actions/cache a stable path to restore into, so the 65MB
-      # embedding model is fetched once rather than on every run ΓÇö the suite
-      # calls calculate_similarity for real, so it does load the model.
-      # Two: tests/test_config_loading.py asserts the cache never lands in a
-      # temp directory, because fastembed's default does exactly that and
-      # Windows then clears it. A path under the workspace satisfies both.
+      # Gives actions/cache a stable path to restore into, so the embedding
+      # model is fetched once rather than on every run — the suite calls
+      # calculate_similarity for real, so it does load the model.
+      # A path under the workspace also satisfies any cache-dir assertions
+      # in the test suite.
       MODEL_CACHE_DIR: ${{ github.workspace }}/.model-cache
 
     steps:
@@ -34,11 +32,6 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
-        with:
-          enable-cache: true
 
       - name: Cache the embedding model
         uses: actions/cache@v4
@@ -49,7 +42,7 @@ jobs:
           key: fastembed-bge-small-en-v1.5
 
       - name: Install dependencies
-        run: uv pip install --system -r pyproject.toml --extra dev
+        run: pip install -r backend/requirements.txt ruff
 
       - name: Lint
         run: ruff check .
@@ -62,7 +55,7 @@ jobs:
         run: pytest -q
 
   frontend:
-    name: frontend (types + build)
+    name: frontend (build)
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -85,8 +78,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Type-check
-        run: npx tsc --noEmit
-
+      # TypeScript was removed in the architecture upgrade — the frontend is
+      # now plain JSX + Vite. Skip tsc and go straight to the build so we
+      # catch import errors, missing modules, and Vite config issues instead.
       - name: Build
         run: npm run build

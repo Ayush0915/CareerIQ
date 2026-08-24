@@ -43,12 +43,11 @@ services:
     rootDir: .
 
     buildCommand: >-
-      pip install uv &&
-      uv pip install --system -r pyproject.toml &&
-      python scripts/prefetch_model.py
+      uv sync --frozen --no-dev &&
+      uv run python scripts/prefetch_model.py
 
     startCommand: >-
-      uvicorn main:app
+      uv run uvicorn main:app
       --app-dir backend
       --host 0.0.0.0
       --port $PORT

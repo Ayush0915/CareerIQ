@@ -1,13 +1,14 @@
 import pytest
 from services.ats_simulator import (
+    simulate_ats,
     _score_contact_info,
+    _score_section_headers,
+    _score_keyword_density,
     _score_date_consistency,
     _score_education,
     _score_formatting,
-    _score_keyword_density,
     _score_length,
-    _score_section_headers,
-    simulate_ats,
+    _score_quantification,
 )
 
 

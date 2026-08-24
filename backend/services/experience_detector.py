@@ -1,16 +1,8 @@
-import datetime
 import re
-
-
-def _current_year() -> int:
-    """Resolved at call time — never hardcode, or every 'present' role
-    silently undercounts as the calendar moves on."""
-    return datetime.date.today().year
 
 
 def detect_experience(resume_text: str, job_description: str) -> dict:
     text = resume_text.lower()
-    current_year = _current_year()
 
     # Extract year ranges like 2019-2023 or 2019 - present
     year_ranges = re.findall(
@@ -21,7 +13,7 @@ def detect_experience(resume_text: str, job_description: str) -> dict:
     total_years = 0
     for start, end in year_ranges:
         start_yr = int(start)
-        end_yr = current_year if end in ['present', 'current', 'now'] else int(end)
+        end_yr = 2024 if end in ['present', 'current', 'now'] else int(end)
         total_years += max(0, end_yr - start_yr)
 
     # Also check explicit mentions

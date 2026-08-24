@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { BookOpen, Clock, Star, Users, ExternalLink, Zap, Filter, TrendingUp, GraduationCap, Map, Sparkles, AlertCircle } from 'lucide-react'
-import { useCourses } from '../hooks/useRemoteData'
+import { getCourseRecommendations } from '../services/api'
 
 const PLATFORM_COLORS = {
   'Coursera':       '#0056d2',
@@ -158,18 +158,41 @@ export default function CourseRecommendations({ skillGaps, jobDescription = '', 
   const { critical = [], important = [], optional = [] } = skillGaps || {}
   const allGaps = useMemo(() => [...critical, ...important, ...optional], [critical, important, optional])
 
+  const [courses, setCourses]           = useState([])
+  const [loading, setLoading]           = useState(false)
+  const [error, setError]               = useState(null)
   const [activeFilter, setActiveFilter] = useState('all')
   const [showAll, setShowAll]           = useState(false)
 
-  const {
-    data: courses = [],
-    isFetching: loading,
-    isError,
-    refetch,
-  } = useCourses(skillGaps, jobDescription, resumeText)
-  const error = isError
-    ? 'Could not generate AI course recommendations. Please try again.'
-    : null
+  useEffect(() => {
+    if (allGaps.length === 0) {
+      setCourses([])
+      return
+    }
+
+    let isMounted = true
+    setLoading(true)
+    setError(null)
+
+    getCourseRecommendations(skillGaps, jobDescription, resumeText)
+      .then(res => {
+        if (isMounted) {
+          setCourses(res.courses || [])
+          setLoading(false)
+        }
+      })
+      .catch(err => {
+        if (isMounted) {
+          console.error("Failed to fetch course recommendations:", err)
+          setError("Could not generate AI course recommendations. Please try again.")
+          setLoading(false)
+        }
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [JSON.stringify(skillGaps), jobDescription, resumeText])
 
   const filtered = useMemo(() => {
     switch (activeFilter) {
@@ -219,7 +242,12 @@ export default function CourseRecommendations({ skillGaps, jobDescription = '', 
         <h3 className="font-display font-bold text-ink text-base mb-1">Recommendation Generation Failed</h3>
         <p className="text-muted text-xs mb-4">{error}</p>
         <button
-          onClick={() => refetch()}
+          onClick={() => {
+            setLoading(true)
+            getCourseRecommendations(skillGaps, jobDescription, resumeText)
+              .then(res => { setCourses(res.courses || []); setLoading(false); setError(null); })
+              .catch(() => { setError("Could not generate AI course recommendations."); setLoading(false); })
+          }}
           className="btn-primary text-xs px-4 py-2 mx-auto">
           Retry AI Recommendations
         </button>

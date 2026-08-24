@@ -9,11 +9,39 @@ def get_matching_skills(resume_skills: list, jd_skills: list) -> list:
 
 
 def generate_feedback(match_score: float, missing_skills: list) -> str:
-    """Human-readable summary of the match.
+    """Generate feedback message"""
 
-    There were two definitions of this function; the first was shadowed by the
-    second and had been unreachable since it was written.
-    """
+    if match_score > 70:
+        level = "Excellent Match"
+    elif match_score > 40:
+        level = "Moderate Match"
+    else:
+        level = "Low Match"
+
+    feedback = f"Overall Match Level: {level}\n\n"
+
+    if missing_skills:
+        feedback += "You should improve these skills:\n"
+        feedback += ", ".join(missing_skills)
+    else:
+        feedback += "Great! You match all key skills."
+
+    return feedback
+
+
+def calculate_keyword_coverage(resume_skills: list, jd_skills: list) -> float:
+    if not jd_skills:
+        return 0.0
+
+    matched = len(set(resume_skills).intersection(set(jd_skills)))
+    total = len(set(jd_skills))
+
+    coverage = (matched / total) * 100
+    return round(coverage, 2)
+
+
+def generate_feedback(match_score: float, missing_skills: list) -> str:
+
     if match_score >= 75:
         level = "Strong Alignment"
     elif match_score >= 50:

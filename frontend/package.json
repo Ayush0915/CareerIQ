@@ -6,9 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview",
-    "typecheck": "tsc --noEmit",
-    "gen:types": "openapi-typescript openapi.json -o src/types/openapi.d.ts"
+    "preview": "vite preview"
   },
   "dependencies": {
     "axios": "^1.7.4",
@@ -16,18 +14,13 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-dropzone": "^14.0.0",
-    "recharts": "^2.9.0",
-    "@tanstack/react-query": "^5.62.0"
+    "recharts": "^2.9.0"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.2",
     "autoprefixer": "^10.4.20",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.15",
-    "vite": "^5.4.10",
-    "typescript": "^5.7.2",
-    "@types/react": "^18.3.12",
-    "@types/react-dom": "^18.3.1",
-    "openapi-typescript": "^7.4.4"
+    "vite": "^5.4.10"
   }
 }

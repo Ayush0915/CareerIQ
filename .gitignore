@@ -3,12 +3,6 @@
 # =========================
 .env
 .env.*
-# ...but NOT the templates. ".env.*" was swallowing .env.example, so both
-# backend/.env.example and frontend/.env.example were untracked: a fresh clone
-# — including the one Render builds from — had no template to copy, and the
-# commit that claimed to "add env templates" never added them.
-!.env.example
-!**/.env.example
 
 # =========================
 # 🟢 FRONTEND (React + Vite)
@@ -35,25 +29,10 @@ __pycache__/
 *.db
 
 # =========================
-# 🧾 LOGS
+# 🐳 DOCKER
 # =========================
 *.log
 vite.config.js.timestamp-*
-
-# =========================
-# 🧹 TOOLING CACHES
-# =========================
-.ruff_cache/
-.pytest_cache/
-.uv/
-
-# =========================
-# 🗑️  PENDING DELETION
-# =========================
-# Files superseded during the upgrade. This environment cannot delete files
-# on disk, so they are moved here instead — safe to remove the folder.
-_to_delete/
-_local_removed/
 
 # =========================
 # 💻 IDE / OS

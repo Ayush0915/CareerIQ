@@ -18,14 +18,14 @@ The cleanest approach for unit tests is to use `limits` library's
 `MemoryStorage.reset()` via `limiter._storage`.
 """
 import io
+import json
+import pytest
+from unittest.mock import patch, MagicMock
+from fastapi.testclient import TestClient
 
 # ── Bootstrap path so pytest can import the backend package ───────────────────
 import sys
 from pathlib import Path
-from unittest.mock import patch
-
-from fastapi.testclient import TestClient
-
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "backend"))
 
 from main import app, limiter
@@ -123,13 +123,12 @@ def test_analyze_rate_limit_429_on_6th_request(mock_parse):
 
 def test_ai_coach_rate_limit_429_on_6th_request():
     """
-    Sends 5 valid coaching requests then a 6th — the 6th must return 429.
-    The LLM call is mocked so the test is fast and offline.
+    Sends 5 valid AI Coach requests then a 6th — the 6th must return 429.
+    We mock all LLM calls so the test is fast and offline.
     """
     _reset_limiter()
 
     coach_payload = {
-        "mode":            "bullets",
         "weak_phrases":    ["responsible for", "worked on"],
         "matching_skills": ["python", "docker"],
         "missing_skills":  ["kubernetes"],
@@ -138,13 +137,16 @@ def test_ai_coach_rate_limit_429_on_6th_request():
         "experience_level": "mid",
     }
 
-    async def _stub_generate(*args, **kwargs):
-        return "• Led Python microservices serving 2M requests daily"
-
-    with patch("routers.ai_coach.generate_one", new=_stub_generate):
+    with (
+        patch("routers.ai_coach.rewrite_bullets",         return_value="• Led Python microservices"),
+        patch("routers.ai_coach.generate_cover_letter",   return_value="Dear Hiring Manager,"),
+        patch("routers.ai_coach.generate_skill_roadmap",  return_value="1. Learn Kubernetes"),
+        patch("routers.ai_coach.generate_interview_prep", return_value="Q: Tell me about Python"),
+        patch("routers.ai_coach.generate_linkedin_summary", return_value="Seasoned engineer"),
+    ):
         def _post():
             return client.post(
-                "/api/v1/ai-coach/generate",
+                "/api/v1/ai-coach",
                 json=coach_payload,
                 headers={"X-Forwarded-For": "10.0.0.88"},  # fixed fake IP
             )

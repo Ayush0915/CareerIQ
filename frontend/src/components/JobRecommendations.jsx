@@ -1,6 +1,6 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Briefcase, MapPin, ExternalLink, Globe, Search, Building2, Clock, ChevronRight } from 'lucide-react'
-import { useJobs } from '../hooks/useRemoteData'
+import { getJobRecommendations } from '../services/api'
 
 const TABS = [
   { key: 'all',    label: 'All Jobs' },
@@ -124,17 +124,31 @@ function JobCard({ job }) {
 }
 
 export default function JobRecommendations({ skills }) {
+  const [jobs, setJobs] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
   const [activeTab, setActiveTab] = useState('all')
   const [search, setSearch] = useState('')
   const [location, setLocation] = useState('India')
+  const [loaded, setLoaded] = useState(false)
 
-  // Loading, error, retry, cancellation and caching all come from the query
-  // client now. This component previously hand-rolled every one of them.
-  const { data: jobs = [], isFetching: loading, isError, refetch } = useJobs(skills ?? [], location)
-  const error = isError ? 'Could not load jobs. Please try again.' : null
-  const loaded = jobs.length > 0 || (!loading && !isError)
+  const loadJobs = async (loc = location) => {
+    try {
+      setLoading(true)
+      setError(null)
+      const data = await getJobRecommendations(skills, loc)
+      setJobs(data.jobs || [])
+      setLoaded(true)
+    } catch (e) {
+      setError('Could not load jobs. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
 
-  const loadJobs = () => refetch()
+  useEffect(() => {
+    if (skills?.length > 0) loadJobs('India')
+  }, [])
 
   const filtered = jobs.filter(job => {
     const matchesTab = activeTab === 'all' || job.region === activeTab
@@ -187,7 +201,7 @@ export default function JobRecommendations({ skills }) {
           </div>
 
           <button
-            onClick={() => loadJobs()}
+            onClick={() => loadJobs(location)}
             disabled={loading}
             className="btn-primary"
             style={{ padding:'8px 18px', fontSize:'0.82rem', display:'flex', alignItems:'center', gap:6, opacity: loading ? 0.6 : 1 }}

@@ -3,7 +3,15 @@ import ReactDOM from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 import App from './App.jsx'
+import { wakeBackend } from './services/api'
 import './index.css'
+
+// Fired at module load rather than in an effect: it needs to start before React
+// mounts, and it must not run twice under StrictMode's double render. Nothing
+// awaits it — the analysis request is what reports a real failure. On a free
+// Render instance this buys back the ~60s cold start while the user is still
+// picking a file.
+void wakeBackend()
 
 const queryClient = new QueryClient({
   defaultOptions: {

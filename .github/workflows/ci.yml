@@ -1,0 +1,92 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+# A new push supersedes the run in flight for the same branch. Without this,
+# pushing three times in a row queues three full runs and you wait for the
+# oldest one to tell you about code you have already replaced.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: backend (lint + tests)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      # Two reasons this is set explicitly rather than left to the default.
+      # One: it gives actions/cache a stable path to restore into, so the 65MB
+      # embedding model is fetched once rather than on every run — the suite
+      # calls calculate_similarity for real, so it does load the model.
+      # Two: tests/test_config_loading.py asserts the cache never lands in a
+      # temp directory, because fastembed's default does exactly that and
+      # Windows then clears it. A path under the workspace satisfies both.
+      MODEL_CACHE_DIR: ${{ github.workspace }}/.model-cache
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Cache the embedding model
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.model-cache
+          # Keyed on the model name, so swapping models invalidates it and
+          # nothing else does.
+          key: fastembed-bge-small-en-v1.5
+
+      - name: Install dependencies
+        run: uv pip install --system -r pyproject.toml --extra dev
+
+      - name: Lint
+        run: ruff check .
+
+      # No OPENROUTER_API_KEY is provided on purpose. The suite must pass
+      # without one: every LLM test stubs the transport, and the deterministic
+      # analysis pipeline is required to work with no LLM configured at all. A
+      # test that quietly needs a live key is a test that will fail on a fork.
+      - name: Tests
+        run: pytest -q
+
+  frontend:
+    name: frontend (types + build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      # ci, not install: it installs exactly what package-lock.json pins and
+      # fails loudly when the lockfile is out of step with package.json, which
+      # is the failure worth catching here.
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type-check
+        run: npx tsc --noEmit
+
+      - name: Build
+        run: npm run build

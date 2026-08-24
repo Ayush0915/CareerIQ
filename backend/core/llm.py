@@ -79,6 +79,35 @@ class LLMPolicyError(LLMError):
     """
 
 
+class LLMTruncatedError(LLMError):
+    """The model hit ``max_tokens`` mid-object.
+
+    Worth its own type because the remedy is the opposite of every other
+    failure's: the model was doing the right thing and simply ran out of room,
+    so the fix is a bigger budget, not a degraded output mode or a different
+    model. Without this distinction a truncated object looks identical to a
+    model that cannot follow a schema, and the ladder degrades away from a
+    model that was about to succeed.
+    """
+
+    def __init__(self, message: str, partial: str = "") -> None:
+        super().__init__(message)
+        self.partial = partial
+
+
+# Some endpoints refuse to have reasoning switched off. Detected rather than
+# hardcoded per model, because which endpoint serves a model changes.
+_REASONING_MANDATORY_MARKERS = (
+    "reasoning is mandatory",
+    "reasoning cannot be disabled",
+)
+
+
+def _reasoning_is_mandatory(error: Exception) -> bool:
+    text = str(error).lower()
+    return any(marker in text for marker in _REASONING_MANDATORY_MARKERS)
+
+
 # OpenRouter returns 404 with this shape when data-policy settings leave zero
 # eligible endpoints — most commonly on free models, which require consenting
 # to providers that may train on and publish request data.
@@ -234,6 +263,7 @@ def _build_body(
     temperature: float,
     response_format: dict[str, Any] | None,
     require_parameters: bool,
+    disable_reasoning: bool = True,
 ) -> dict[str, Any]:
     primary, *fallbacks = models
     extra_body: dict[str, Any] = {}
@@ -244,6 +274,14 @@ def _build_body(
         extra_body["models"] = fallbacks
     if require_parameters:
         extra_body["provider"] = {"require_parameters": True}
+    if disable_reasoning:
+        # Reasoning tokens are billed against max_tokens, and the free tier is
+        # dominated by reasoning models. Left on, nemotron-3-super spent all
+        # 2000 tokens thinking and returned a JSON object truncated mid-key —
+        # which the ladder then read as "this model cannot do schemas" and
+        # degraded away from. Off, the same model returns a fully valid
+        # LLMEvaluation in ~9s using ~900 tokens. Measured, not assumed.
+        extra_body["reasoning"] = {"enabled": False}
 
     body: dict[str, Any] = {
         "model": primary,
@@ -259,22 +297,50 @@ def _build_body(
     return body
 
 
-async def _send(body: dict[str, Any]) -> str:
+def _strip_reasoning_flag(body: dict[str, Any]) -> bool:
+    """Remove the reasoning-off flag in place. True if there was one to remove.
+
+    liquid/lfm-2.5-2.6b:free answers 400 "Reasoning is mandatory for this
+    endpoint" — so the flag that fixes most free models breaks that one. Rather
+    than maintaining a per-model allowlist that goes stale, react to the error.
+    """
+    extra = body.get("extra_body")
+    if isinstance(extra, dict) and "reasoning" in extra:
+        extra.pop("reasoning")
+        if not extra:
+            body.pop("extra_body", None)
+        return True
+    return False
+
+
+async def _send(body: dict[str, Any], *, allow_truncated: bool = False) -> str:
     client = get_client()
     last_error: Exception | None = None
 
     for attempt in range(settings.llm_max_retries):
         try:
             response = await client.chat.completions.create(**body)
-            content = (response.choices[0].message.content or "").strip()
+            choice = response.choices[0]
+            content = (choice.message.content or "").strip()
+            served = getattr(response, "model", body["model"])
+
+            if content and choice.finish_reason == "length" and not allow_truncated:
+                raise LLMTruncatedError(
+                    f"{served} hit max_tokens={body.get('max_tokens')} mid-response", content
+                )
             if content:
-                logger.info("LLM ok via %s", getattr(response, "model", body["model"]))
+                logger.info("LLM ok via %s", served)
                 return content
             last_error = LLMError("Model returned an empty completion")
+        except LLMTruncatedError:
+            raise  # a budget problem; retrying the same budget cannot fix it
         except RETRYABLE as exc:
             last_error = exc
             if _looks_like_policy_block(exc):
                 raise LLMPolicyError(POLICY_HELP) from exc
+            if _reasoning_is_mandatory(exc) and _strip_reasoning_flag(body):
+                logger.info("Endpoint requires reasoning — resending with it enabled")
+                continue
             if _looks_unsupported(exc):
                 raise  # do not burn retries on a capability mismatch
             logger.warning(
@@ -284,6 +350,9 @@ async def _send(body: dict[str, Any]) -> str:
             last_error = exc
             if _looks_like_policy_block(exc):
                 raise LLMPolicyError(POLICY_HELP) from exc
+            if _reasoning_is_mandatory(exc) and _strip_reasoning_flag(body):
+                logger.info("Endpoint requires reasoning — resending with it enabled")
+                continue
             if _looks_unsupported(exc):
                 raise
             logger.warning("LLM attempt %d failed: %s", attempt + 1, exc)
@@ -308,7 +377,12 @@ async def complete_text(
             "(free key at https://openrouter.ai/keys)."
         )
     chain = models or settings.fast_model_chain
-    return await _send(_build_body(prompt, chain, max_tokens, temperature, None, False))
+    # allow_truncated: a coaching paragraph cut short is still worth showing;
+    # a JSON object cut short is not. Only complete_json treats it as an error.
+    return await _send(
+        _build_body(prompt, chain, max_tokens, temperature, None, False),
+        allow_truncated=True,
+    )
 
 
 def _modes_to_try(model: str) -> tuple[str, ...]:
@@ -327,7 +401,7 @@ async def complete_json(
     prompt: str,
     schema_model: type[TModel],
     *,
-    max_tokens: int = 2000,
+    max_tokens: int = 4000,
     temperature: float = 0.1,
     models: list[str] | None = None,
     schema_name: str | None = None,
@@ -367,12 +441,27 @@ async def complete_json(
             response_format = {"type": "json_object"} if mode == JSON_OBJECT else None
             require_parameters = False
 
+        budget = max_tokens
         try:
-            raw = await _send(
-                _build_body(
-                    body_prompt, chain, max_tokens, temperature, response_format, require_parameters
+            try:
+                raw = await _send(
+                    _build_body(
+                        body_prompt, chain, budget, temperature, response_format, require_parameters
+                    )
                 )
-            )
+            except LLMTruncatedError as truncation:
+                # The model was answering correctly and ran out of room. Give it
+                # more room once, on the SAME rung — degrading here would walk
+                # away from a model that is about to succeed, which is exactly
+                # what used to happen.
+                budget = max_tokens * 2
+                logger.info("%s — retrying once at max_tokens=%d", truncation, budget)
+                raw = await _send(
+                    _build_body(
+                        body_prompt, chain, budget, temperature, response_format, require_parameters
+                    ),
+                    allow_truncated=True,
+                )
         except LLMPolicyError:
             raise  # degrading cannot conjure an eligible endpoint
         except Exception as exc:  # noqa: BLE001
@@ -391,7 +480,7 @@ async def complete_json(
 
         # Valid transport, invalid content — give the model its error back once.
         repaired = await _repair(
-            body_prompt, raw, schema_model, chain, max_tokens, response_format, require_parameters
+            body_prompt, raw, schema_model, chain, budget, response_format, require_parameters
         )
         if repaired is not None:
             _mode_cache[primary] = mode

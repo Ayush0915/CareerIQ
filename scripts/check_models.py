@@ -9,8 +9,16 @@ backend/.env.
     python scripts/check_models.py                  # structured-output models
     python scripts/check_models.py --free           # zero-cost models only
     python scripts/check_models.py --validate       # do my configured IDs exist?
+    python scripts/check_models.py --validate --deep # ...and can my key call them?
+    python scripts/check_models.py --audit          # call EVERY free model once
     python scripts/check_models.py --all            # every model
     python scripts/check_models.py --probe MODEL_ID # send a real test request
+
+Existence is not reachability. A model can sit in the catalogue, pass
+--validate, and still refuse every request your key makes — because your
+account's data policy filtered out its endpoints, or because it is published
+for agentic harnesses only. Both of those happened to this project. --audit and
+--deep answer the question --validate cannot: does a real call come back?
 
 Selection criteria, in order:
   1. Must support structured outputs — anything else is disqualified for the
@@ -27,39 +35,40 @@ import argparse
 import json
 import os
 import sys
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 import httpx
 
 BASE_URL = os.environ.get("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
 
 
-def fetch_models() -> List[Dict[str, Any]]:
+def fetch_models() -> list[dict[str, Any]]:
     response = httpx.get(f"{BASE_URL}/models", timeout=30)
     response.raise_for_status()
     return response.json().get("data", [])
 
 
-def price_per_million(model: Dict[str, Any], key: str) -> float:
+def price_per_million(model: dict[str, Any], key: str) -> float:
     try:
         return float(model.get("pricing", {}).get(key, 0)) * 1_000_000
     except (TypeError, ValueError):
         return 0.0
 
 
-def supports_structured(model: Dict[str, Any]) -> bool:
+def supports_structured(model: dict[str, Any]) -> bool:
     return "structured_outputs" in (model.get("supported_parameters") or [])
 
 
-def estimated_cost(model: Dict[str, Any]) -> float:
+def estimated_cost(model: dict[str, Any]) -> float:
     """Cost of one evaluation: ~1.5k input tokens, ~2k output."""
     return (price_per_million(model, "prompt") * 0.0015) + (
         price_per_million(model, "completion") * 0.002
     )
 
 
-def show(models: List[Dict[str, Any]], limit: int) -> None:
+def show(models: list[dict[str, Any]], limit: int) -> None:
     rows = sorted(models, key=estimated_cost)[:limit]
 
     print(f"\n{'MODEL ID':<48} {'CONTEXT':>9} {'IN $/M':>9} {'OUT $/M':>9} {'PER CALL':>10}")
@@ -166,7 +175,134 @@ def probe(model_id: str) -> int:
     return 0
 
 
-def validate_configured() -> int:
+# ── Reachability ──────────────────────────────────────────────────────────────
+#
+# Four outcomes worth telling apart, because the remedy differs for each:
+#
+#   ok       a real response came back — the model is usable right now
+#   policy   404, your account's privacy settings left zero eligible endpoints;
+#            fix at https://openrouter.ai/settings/privacy, not in code
+#   harness  403, the model is published to agentic harnesses only and will
+#            never answer an API call; remove it from the chain
+#   busy     429, the free pool is saturated at this moment; retry later
+#   error    anything else
+
+REACH_OK = "ok"
+REACH_POLICY = "policy"
+REACH_HARNESS = "harness"
+REACH_BUSY = "busy"
+REACH_ERROR = "error"
+
+_REACH_LABEL = {
+    REACH_OK: "✓ reachable",
+    REACH_POLICY: "✗ data policy",
+    REACH_HARNESS: "✗ harness only",
+    REACH_BUSY: "· rate limited",
+    REACH_ERROR: "✗ error",
+}
+
+
+def reachability(model_id: str, api_key: str, timeout: float = 60.0) -> tuple[str, str]:
+    """Send the smallest possible real request and classify what comes back.
+
+    Deliberately not schema-constrained: this answers "will this model talk to
+    me at all", which must be separable from "does it honour a strict schema".
+    Conflating the two is how a permanently-403 model survived in the fallback
+    chain — its failure looked like a capability problem.
+    """
+    try:
+        response = httpx.post(
+            f"{BASE_URL}/chat/completions",
+            headers={"Authorization": f"Bearer {api_key}"},
+            json={
+                "model": model_id,
+                "messages": [{"role": "user", "content": "Reply with the single word: ok"}],
+                "max_tokens": 16,
+            },
+            timeout=timeout,
+        )
+    except httpx.HTTPError as exc:
+        return REACH_ERROR, f"{type(exc).__name__}"
+
+    if response.status_code == 200:
+        try:
+            message = response.json()["choices"][0]["message"]
+            text = (message.get("content") or message.get("reasoning") or "").strip()
+        except (KeyError, IndexError, ValueError):
+            return REACH_ERROR, "200 but unparseable body"
+        return REACH_OK, (text[:40] or "(empty content)")
+
+    detail = response.text
+    try:
+        detail = response.json()["error"]["message"]
+    except (KeyError, ValueError, TypeError):
+        pass
+    lowered = detail.lower()
+
+    if response.status_code == 404 and "data policy" in lowered:
+        return REACH_POLICY, "enable both free-endpoint toggles in privacy settings"
+    if response.status_code == 403 and "harness" in lowered:
+        return REACH_HARNESS, "not callable over the API — drop it from the chain"
+    if response.status_code == 429:
+        return REACH_BUSY, "free pool saturated; retry later"
+    return REACH_ERROR, f"HTTP {response.status_code}: {detail[:70]}"
+
+
+def audit_free_models(workers: int = 6) -> int:
+    """Call every free model once and report which ones actually answer."""
+    api_key = _api_key()
+    if not api_key:
+        print("OPENROUTER_API_KEY is not set — an audit needs a real key.", file=sys.stderr)
+        return 1
+
+    free = [m for m in fetch_models() if estimated_cost(m) == 0]
+    if not free:
+        print("No free models in the catalogue right now.", file=sys.stderr)
+        return 1
+
+    print(f"\nCalling {len(free)} free models once each. This takes a minute.\n")
+    print(f"{'STATUS':<16} {'SCHEMA':<7} {'MODEL ID':<50} NOTE")
+    print("-" * 110)
+
+    results: dict[str, tuple[str, str]] = {}
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        futures = {
+            pool.submit(reachability, m["id"], api_key): m for m in free
+        }
+        for future in as_completed(futures):
+            model = futures[future]
+            results[model["id"]] = future.result()
+
+    order = {REACH_OK: 0, REACH_BUSY: 1, REACH_POLICY: 2, REACH_HARNESS: 3, REACH_ERROR: 4}
+    for model in sorted(free, key=lambda m: (order[results[m["id"]][0]], m["id"])):
+        status, note = results[model["id"]]
+        schema = "yes" if supports_structured(model) else "no"
+        print(f"{_REACH_LABEL[status]:<16} {schema:<7} {model['id']:<50} {note}")
+
+    usable = [m for m in free if results[m["id"]][0] == REACH_OK]
+    blocked = [m for m in free if results[m["id"]][0] == REACH_POLICY]
+
+    print(f"\n{len(usable)} of {len(free)} free models answered.")
+    if blocked:
+        print(
+            f"\n{len(blocked)} were filtered out by your account's data policy. "
+            "That is an\naccount setting, not a code or model problem — enable both of:"
+        )
+        print("  - Free endpoints that may train on request data")
+        print("  - Free endpoints that may publish prompts")
+        print("at https://openrouter.ai/settings/privacy, then re-run this.\n")
+    elif usable:
+        schema_capable = [m["id"] for m in usable if supports_structured(m)]
+        if schema_capable:
+            print("\nGood candidates for PRIMARY_MODEL (reachable + schema-enforcing):")
+            for model_id in schema_capable[:5]:
+                print(f"  {model_id}")
+        print()
+
+    return 0 if usable else 1
+
+
+def validate_configured(deep: bool = False) -> int:
     """Check the IDs in settings against the live catalogue.
 
     A model ID that looks plausible but does not exist fails at the first real
@@ -188,6 +324,7 @@ def validate_configured() -> int:
     }
 
     problems = 0
+    unreachable = 0
     print()
     for label, chain in chains.items():
         print(f"{label}")
@@ -201,7 +338,16 @@ def validate_configured() -> int:
             tags = []
             tags.append("free" if cost == 0 else f"${cost:.5f}/call")
             tags.append("schema" if supports_structured(entry) else "no schema")
-            print(f"  ✓ {model_id:<50} {', '.join(tags)}")
+
+            if not (deep and key):
+                print(f"  ✓ {model_id:<50} {', '.join(tags)}")
+                continue
+
+            status, note = reachability(model_id, key)
+            print(f"  {_REACH_LABEL[status]:<16} {model_id:<50} {', '.join(tags)}")
+            if status in (REACH_POLICY, REACH_HARNESS, REACH_ERROR):
+                print(f"      {note}")
+                unreachable += 1
         print()
 
     if problems:
@@ -209,7 +355,17 @@ def validate_configured() -> int:
         print("will fail. Fix backend/.env, then re-run this check.\n")
         return 1
 
-    print("All configured model IDs exist.\n")
+    if not deep:
+        print("All configured model IDs exist.")
+        print("Existence is not reachability — re-run with --deep to actually call them.\n")
+        return 0
+
+    if unreachable:
+        print(f"{unreachable} configured model(s) exist but will not answer your key.")
+        print("Run --audit to see which free models do.\n")
+        return 1
+
+    print("All configured models exist and answered a live request.\n")
     return 0
 
 
@@ -220,12 +376,24 @@ def main() -> int:
     parser.add_argument("--limit", type=int, default=30)
     parser.add_argument("--probe", metavar="MODEL_ID", help="send one real test request")
     parser.add_argument("--validate", action="store_true", help="check configured IDs exist")
+    parser.add_argument(
+        "--deep",
+        action="store_true",
+        help="with --validate, also call each configured model for real",
+    )
+    parser.add_argument(
+        "--audit",
+        action="store_true",
+        help="call every free model once and report which ones answer",
+    )
     args = parser.parse_args()
 
     if args.probe:
         return probe(args.probe)
+    if args.audit:
+        return audit_free_models()
     if args.validate:
-        return validate_configured()
+        return validate_configured(deep=args.deep)
 
     models = fetch_models()
     if not args.all:

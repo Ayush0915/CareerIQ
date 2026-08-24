@@ -37,9 +37,14 @@ class Recorder:
     def __init__(self, behaviour):
         self.behaviour = behaviour
         self.bodies = []
+        self.kwargs = []
 
-    async def __call__(self, body):
-        self.bodies.append(body)
+    async def __call__(self, body, **kwargs):
+        # Snapshot: the reasoning-flag fallback mutates extra_body in place, so
+        # storing the live dict would make every recorded call show only the
+        # final state.
+        self.bodies.append({**body, "extra_body": dict(body.get("extra_body") or {})})
+        self.kwargs.append(kwargs)
         result = self.behaviour(body, len(self.bodies) - 1)
         if isinstance(result, Exception):
             raise result
@@ -185,3 +190,106 @@ class TestConfiguration:
 
         monkeypatch.setattr(settings, "fallback_models", "c/d", raising=False)
         assert settings.using_free_models is False
+
+
+class TestReasoningBudget:
+    """Free-tier reasoning models bill their thinking against max_tokens.
+
+    Measured against the live API: with reasoning left on,
+    nvidia/nemotron-3-super-120b-a12b:free spent all 2000 tokens thinking and
+    returned JSON truncated mid-key. The ladder read that as "cannot do
+    schemas" and degraded away from a model that was one parameter from
+    working — 305s and a failure, instead of 11s and a valid object.
+    """
+
+    def test_reasoning_is_disabled_by_default(self):
+        body = llm._build_body("p", ["m/a"], 100, 0.1, None, False)
+        assert body["extra_body"]["reasoning"] == {"enabled": False}
+
+    def test_reasoning_can_be_left_on(self):
+        body = llm._build_body("p", ["m/a"], 100, 0.1, None, False, disable_reasoning=False)
+        assert "reasoning" not in (body.get("extra_body") or {})
+
+    def test_stripping_the_flag_reports_whether_there_was_one(self):
+        body = llm._build_body("p", ["m/a"], 100, 0.1, None, False)
+        assert llm._strip_reasoning_flag(body) is True
+        assert "reasoning" not in (body.get("extra_body") or {})
+        # Idempotent: nothing left to strip on a second pass.
+        assert llm._strip_reasoning_flag(body) is False
+
+    def test_extra_body_disappears_when_it_held_only_reasoning(self):
+        body = llm._build_body("p", ["m/a"], 100, 0.1, None, False)
+        llm._strip_reasoning_flag(body)
+        assert "extra_body" not in body
+
+    def test_fallback_models_survive_stripping(self):
+        body = llm._build_body("p", ["m/a", "m/b"], 100, 0.1, None, False)
+        llm._strip_reasoning_flag(body)
+        assert body["extra_body"]["models"] == ["m/b"]
+
+    @pytest.mark.parametrize(
+        "message",
+        ["Reasoning is mandatory for this endpoint", "reasoning cannot be disabled here"],
+    )
+    def test_mandatory_reasoning_is_recognised(self, message):
+        assert llm._reasoning_is_mandatory(RuntimeError(message)) is True
+
+    def test_unrelated_errors_are_not_mistaken_for_it(self):
+        assert llm._reasoning_is_mandatory(RuntimeError("rate limited")) is False
+
+
+class TestTruncation:
+    @pytest.mark.asyncio
+    async def test_retries_once_at_a_larger_budget_on_the_same_rung(self, monkeypatch):
+        def behaviour(body, i):
+            if i == 0:
+                return llm.LLMTruncatedError("hit max_tokens", '{"score": 72,')
+            return VALID
+
+        recorder = Recorder(behaviour)
+        monkeypatch.setattr(llm, "_send", recorder)
+
+        result = await llm.complete_json("prompt", Simple, models=["m/a"], max_tokens=1000)
+
+        assert result.score == 72
+        assert len(recorder.bodies) == 2
+        # Same rung — the point is not to walk away from a model that was
+        # answering correctly and merely ran out of room.
+        assert recorder.mode_of(0) == recorder.mode_of(1) == llm.STRICT
+        assert recorder.bodies[0]["max_tokens"] == 1000
+        assert recorder.bodies[1]["max_tokens"] == 2000
+        # The retry accepts a truncated body rather than looping forever.
+        assert recorder.kwargs[1]["allow_truncated"] is True
+
+    @pytest.mark.asyncio
+    async def test_a_truncated_retry_still_degrades_if_it_cannot_be_parsed(self, monkeypatch):
+        def behaviour(body, i):
+            if i % 2 == 0:
+                return llm.LLMTruncatedError("hit max_tokens", "")
+            return "not json at all"
+
+        recorder = Recorder(behaviour)
+        monkeypatch.setattr(llm, "_send", recorder)
+
+        with pytest.raises(llm.LLMError):
+            await llm.complete_json("prompt", Simple, models=["m/a"])
+
+        # Every rung of the ladder was tried before giving up.
+        modes = {recorder.mode_of(i) for i in range(len(recorder.bodies))}
+        assert modes == {llm.STRICT, llm.JSON_OBJECT, llm.PROMPT}
+
+    @pytest.mark.asyncio
+    async def test_free_text_tolerates_truncation(self, monkeypatch):
+        recorder = Recorder(lambda body, i: "a coaching paragraph cut short")
+        monkeypatch.setattr(llm, "_send", recorder)
+
+        text = await llm.complete_text("prompt", models=["m/a"])
+
+        # A paragraph cut short is still worth showing; a JSON object is not.
+        assert text.startswith("a coaching paragraph")
+        assert recorder.kwargs[0]["allow_truncated"] is True
+
+    def test_truncation_error_carries_the_partial_body(self):
+        error = llm.LLMTruncatedError("hit max_tokens", '{"score": 7')
+        assert error.partial == '{"score": 7'
+        assert isinstance(error, llm.LLMError)

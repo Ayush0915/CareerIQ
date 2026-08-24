@@ -1,0 +1,97 @@
+# Render Blueprint — backend only. The frontend goes to Vercel (frontend/vercel.json).
+#
+# Deploy: Render Dashboard -> New -> Blueprint -> pick this repo.
+# Everything below is applied automatically except the three secrets marked
+# `sync: false`, which Render prompts for on first deploy.
+#
+# Why these exact values — each one is a bug that was in DOCUMENTATION.md:
+#
+#   rootDir: .        The guide said `backend`. pyproject.toml and scripts/ are
+#                     at the repo root, so the build command could not find
+#                     either of them and the build died before installing
+#                     anything. The start command uses --app-dir instead, which
+#                     is what actually needs to point at backend/.
+#
+#   pip install uv    The guide called `uv` directly. Render's Python runtime
+#                     ships python3-pip and python3-setuptools, not uv.
+#
+#   workers: 1        The LLM output-mode cache, the slowapi rate limiter and
+#                     the usage counters are all per-process. A second worker
+#                     silently halves the effective rate limit and makes each
+#                     worker re-negotiate the output ladder on its own.
+#
+#   TRUST_PROXY_HEADERS
+#                     Absent from the guide's env list. Without it every request
+#                     keys to Render's proxy IP, so RATE_LIMIT=5/minute becomes
+#                     five requests per minute shared by every visitor on earth.
+#
+#   MODEL_CACHE_DIR   Inside the project directory, which survives from build to
+#                     runtime. The default (~/.cache) is not somewhere the free
+#                     tier guarantees, and losing it means every cold start
+#                     re-downloads 130MB from HuggingFace.
+#
+# Measured footprint: ~290MB peak RSS for a full analysis (146MB import,
+# +121MB embedding model, +23MB working set). The free instance is 512MB, so
+# this fits at one worker and would not fit at two.
+
+services:
+  - type: web
+    name: careeriq-api
+    runtime: python
+    plan: free
+    region: singapore
+    rootDir: .
+
+    buildCommand: >-
+      pip install uv &&
+      uv pip install --system -r pyproject.toml &&
+      python scripts/prefetch_model.py
+
+    startCommand: >-
+      uvicorn main:app
+      --app-dir backend
+      --host 0.0.0.0
+      --port $PORT
+      --workers 1
+      --proxy-headers
+      --forwarded-allow-ips='*'
+
+    healthCheckPath: /health
+
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12"
+
+      - key: ENVIRONMENT
+        value: production
+
+      # Render terminates TLS and overwrites X-Forwarded-For, so the header can
+      # be trusted here. It cannot be trusted anywhere the app is reachable
+      # directly — the header is caller-supplied and trivially spoofed.
+      - key: TRUST_PROXY_HEADERS
+        value: "true"
+
+      - key: MODEL_CACHE_DIR
+        value: /opt/render/project/src/.model-cache
+
+      - key: RATE_LIMIT
+        value: 5/minute
+
+      # ── Secrets: Render prompts for these on first deploy ──────────────────
+      # Requires both free-endpoint toggles at
+      # https://openrouter.ai/settings/privacy — without them every free model
+      # returns 404 and the LLM panels stay empty while the app looks healthy.
+      - key: OPENROUTER_API_KEY
+        sync: false
+
+      # Optional. Without it live job search falls back to the free Remotive API.
+      - key: RAPIDAPI_KEY
+        sync: false
+
+      # Set this to match your actual Vercel domain, e.g.
+      #   https://careeriq\.vercel\.app|https://careeriq-.*\.vercel\.app
+      # The built-in default covers careeriq*.vercel.app and localhost. Getting
+      # this wrong produces a backend that answers curl perfectly and every
+      # browser request with a CORS error.
+      - key: CORS_ALLOW_ORIGIN_REGEX
+        sync: false

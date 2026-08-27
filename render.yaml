@@ -76,6 +76,13 @@ services:
       - key: RATE_LIMIT
         value: 5/minute
 
+      # onnxruntime sizes its inference thread pool from the host's core count,
+      # which on a shared 0.1-CPU instance is eight threads contending for a tenth
+      # of a core - slower than one thread owning it outright, and the contention
+      # is what starves the event loop. See backend/services/similarity.py.
+      - key: EMBEDDING_THREADS
+        value: "1"
+
       # ── Secrets: Render prompts for these on first deploy ──────────────────
       # Requires both free-endpoint toggles at
       # https://openrouter.ai/settings/privacy — without them every free model

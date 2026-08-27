@@ -34,12 +34,39 @@ def _cache_dir() -> str:
     return str(target)
 
 
+def _threads() -> int | None:
+    """How many threads onnxruntime may use, or None to let it decide.
+
+    onnxruntime sizes its thread pool from the host's core count, which on a
+    shared container bears no relation to the CPU share actually allotted. On a
+    0.1-CPU instance that is eight threads contending for a tenth of a core —
+    slower than one thread having it outright, and the contention is what
+    starves the rest of the process. Set EMBEDDING_THREADS=1 there.
+    """
+    try:
+        from core.config import settings
+
+        value = settings.embedding_threads
+    except Exception:  # pragma: no cover - config-free use (scripts, tests)
+        value = int(os.environ.get("EMBEDDING_THREADS", "0") or 0)
+
+    return value if value > 0 else None
+
+
 def get_model():
     global _model
     if _model is None:
         cache = _cache_dir()
-        logger.info("Loading %s (cache: %s)", EMBEDDING_MODEL, cache)
-        _model = TextEmbedding(model_name=EMBEDDING_MODEL, cache_dir=cache)
+        threads = _threads()
+        logger.info(
+            "Loading %s (cache: %s, threads: %s)",
+            EMBEDDING_MODEL,
+            cache,
+            threads or "auto",
+        )
+        _model = TextEmbedding(
+            model_name=EMBEDDING_MODEL, cache_dir=cache, threads=threads
+        )
     return _model
 
 

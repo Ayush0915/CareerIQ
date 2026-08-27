@@ -163,9 +163,28 @@ async def analyze_resume(
             # Both sides are passed RAW: extract_skills_from_text normalizes
             # internally, so the resume and the JD can never be normalized
             # differently again.
-            skills_list   = load_skills()
-            resume_skills = extract_skills_from_text(resume_raw, skills_list)
-            jd_skills     = extract_skills_from_text(jd, skills_list)
+            #
+            # Everything from here to the end of phase 3 runs in a worker
+            # thread rather than inline. It is all CPU-bound, and an async
+            # generator that calls it directly owns the event loop for the
+            # whole duration — nothing else in the process gets served, health
+            # checks included. Measured against the deployed 0.1-CPU instance:
+            # /health went from 1ms to 15.1s during a single analysis, blew the
+            # platform's 5s health-check timeout, and the instance was killed
+            # and restarted mid-request. The symptom presented as a service
+            # crash-looping; it was in fact just busy.
+            #
+            # onnxruntime releases the GIL during inference, so a worker thread
+            # really does hand the loop back rather than only appearing to.
+            def _extract() -> tuple[list[str], list[str], list[str]]:
+                skills = load_skills()
+                return (
+                    skills,
+                    extract_skills_from_text(resume_raw, skills),
+                    extract_skills_from_text(jd, skills),
+                )
+
+            skills_list, resume_skills, jd_skills = await _run_sync(_extract)
 
             # Emit Phase 2 Progress Event (50%)
             yield f"data: {json.dumps({'event': 'progress', 'progress': 50, 'message': 'Skill extraction complete'})}\n\n"
@@ -175,15 +194,35 @@ async def analyze_resume(
             # Evidence-weighted coverage: a skill demonstrated in an
             # experience bullet counts for far more than the same word sitting
             # in a comma-separated list.
-            evidence = gather_evidence(resume_raw, skills_list)
-            keyword_score = weighted_coverage(evidence, jd_skills)
-            sim           = calculate_similarity(resume_raw, jd)
-            missing       = get_missing_skills(resume_skills, jd_skills)
-            matching      = get_matching_skills(resume_skills, jd_skills)
-            gap           = classify_skill_gaps(missing, jd_skills, jd)
-            signal        = analyze_signal_to_noise(resume_raw)
-            feedback      = generate_feedback(sim["final_score"], missing)
-            ats_sim       = simulate_ats(resume_raw, jd)
+            # The embedding call dominates this block, so it goes to the same
+            # worker thread as the rest rather than being awaited separately —
+            # one hand-off instead of nine.
+            def _score() -> dict:
+                evidence_map = gather_evidence(resume_raw, skills_list)
+                similarity = calculate_similarity(resume_raw, jd)
+                absent = get_missing_skills(resume_skills, jd_skills)
+                return {
+                    "evidence": evidence_map,
+                    "keyword_score": weighted_coverage(evidence_map, jd_skills),
+                    "sim": similarity,
+                    "missing": absent,
+                    "matching": get_matching_skills(resume_skills, jd_skills),
+                    "gap": classify_skill_gaps(absent, jd_skills, jd),
+                    "signal": analyze_signal_to_noise(resume_raw),
+                    "feedback": generate_feedback(similarity["final_score"], absent),
+                    "ats_sim": simulate_ats(resume_raw, jd),
+                }
+
+            scored = await _run_sync(_score)
+            evidence      = scored["evidence"]
+            keyword_score = scored["keyword_score"]
+            sim           = scored["sim"]
+            missing       = scored["missing"]
+            matching      = scored["matching"]
+            gap           = scored["gap"]
+            signal        = scored["signal"]
+            feedback      = scored["feedback"]
+            ats_sim       = scored["ats_sim"]
 
             # Emit Phase 3 Progress Event (75%)
             yield f"data: {json.dumps({'event': 'progress', 'progress': 75, 'message': 'Similarity calculation complete'})}\n\n"

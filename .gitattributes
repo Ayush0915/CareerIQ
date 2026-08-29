@@ -1,0 +1,30 @@
+# Normalize line endings.
+#
+# Without this file, a checkout on Windows writes CRLF while the repository
+# stores LF, so every file that is merely opened and saved shows up as a
+# whole-file rewrite. That is what made the upgrade branch look like a total
+# rewrite of the project and made its diffs unreadable.
+#
+# `text=auto eol=lf` stores LF in the repository and checks LF out everywhere.
+* text=auto eol=lf
+
+# Files that must keep their own endings
+*.bat  text eol=crlf
+*.cmd  text eol=crlf
+*.ps1  text eol=crlf
+
+# Binary — never touched
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.pdf  binary
+*.woff binary
+*.woff2 binary
+*.docx binary
+*.xlsx binary
+
+# Generated — collapse in diffs and reviews
+uv.lock                    linguist-generated=true -diff
+frontend/package-lock.json linguist-generated=true -diff

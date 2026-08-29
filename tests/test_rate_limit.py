@@ -18,9 +18,7 @@ The cleanest approach for unit tests is to use `limits` library's
 `MemoryStorage.reset()` via `limiter._storage`.
 """
 import io
-import json
-import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 from fastapi.testclient import TestClient
 
 # ── Bootstrap path so pytest can import the backend package ───────────────────

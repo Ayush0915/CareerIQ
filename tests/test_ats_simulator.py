@@ -8,7 +8,6 @@ from services.ats_simulator import (
     _score_education,
     _score_formatting,
     _score_length,
-    _score_quantification,
 )
 
 

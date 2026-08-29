@@ -1,4 +1,3 @@
-import pytest
 from services.skill_gap_analyzer import classify_skill_gaps
 
 

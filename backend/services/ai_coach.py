@@ -1,6 +1,5 @@
 import os
 import re
-import asyncio
 from groq import Groq
 
 client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
@@ -27,7 +26,7 @@ def _call(prompt: str, max_tokens: int = 500, fast: bool = False) -> str:
                 temperature=0.3,
             )
             return _strip_think(resp.choices[0].message.content)
-        except Exception as e:
+        except Exception:
             if attempt < 2:
                 time.sleep(1.5 * (attempt + 1))
     # Final fallback
@@ -351,7 +350,8 @@ Each course object MUST follow this structure:
 """
 
     raw = _call(prompt, max_tokens=1500)
-    import json, re
+    import json
+    import re
 
     raw = raw.strip()
     raw = re.sub(r"^```(?:json)?\s*", "", raw)

@@ -1,17 +1,19 @@
-from dotenv import load_dotenv
-load_dotenv()
-
+import datetime
 import logging
 import re
 import time
 import uuid
+
+from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
+from slowapi import Limiter
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
+from slowapi.util import get_remote_address
+
+load_dotenv()
 
 # ── Logging setup ─────────────────────────────────────────────────────────────
 logging.basicConfig(
@@ -71,8 +73,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-import datetime
 
 # ── Global error handler ──────────────────────────────────────────────────────
 @app.exception_handler(Exception)

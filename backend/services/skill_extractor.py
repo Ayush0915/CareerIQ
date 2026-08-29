@@ -1,19 +1,7 @@
+import os as _os
 import pandas as pd
 import re
 
-# Synonym dictionary
-SYNONYMS = {
-    "ml": "machine learning",
-    "dl": "deep learning",
-    "js": "javascript",
-    "py": "python",
-    "tf": "tensorflow",
-    "np": "numpy",
-    "nlp": "natural language processing"
-}
-
-
-import os as _os
 _SKILLS_PATH = _os.path.join(_os.path.dirname(_os.path.dirname(__file__)), "skills_database.csv")
 
 FALLBACK_SKILLS = [

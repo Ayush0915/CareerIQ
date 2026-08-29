@@ -1,4 +1,3 @@
-import time
 from unittest.mock import patch
 import pytest
 from services.llm_evaluator import (

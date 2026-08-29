@@ -1,4 +1,3 @@
-import pytest
 from services.ai_coach import generate_course_recommendations, _fallback_course_recommendations
 
 

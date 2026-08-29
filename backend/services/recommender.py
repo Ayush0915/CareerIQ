@@ -8,27 +8,6 @@ def get_matching_skills(resume_skills: list, jd_skills: list) -> list:
     return list(set(resume_skills).intersection(set(jd_skills)))
 
 
-def generate_feedback(match_score: float, missing_skills: list) -> str:
-    """Generate feedback message"""
-
-    if match_score > 70:
-        level = "Excellent Match"
-    elif match_score > 40:
-        level = "Moderate Match"
-    else:
-        level = "Low Match"
-
-    feedback = f"Overall Match Level: {level}\n\n"
-
-    if missing_skills:
-        feedback += "You should improve these skills:\n"
-        feedback += ", ".join(missing_skills)
-    else:
-        feedback += "Great! You match all key skills."
-
-    return feedback
-
-
 def calculate_keyword_coverage(resume_skills: list, jd_skills: list) -> float:
     if not jd_skills:
         return 0.0

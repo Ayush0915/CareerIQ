@@ -4,7 +4,7 @@ Detailed ATS (Applicant Tracking System) simulation.
 Scores the resume on 8 dimensions that real ATS systems evaluate.
 """
 import re
-from typing import Dict, List
+from typing import Dict
 
 
 # ── ATS-unfriendly formatting patterns ───────────────────────────────────────

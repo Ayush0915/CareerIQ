@@ -172,7 +172,6 @@ def calculate_job_match(job: Dict, resume_skills: List[str]) -> float:
     return round(min(score, 100), 1)
 
 async def fetch_all_jobs(resume_skills: List[str], location: str = "India") -> List[Dict]:
-    import asyncio
     keywords = resume_skills[:5] if resume_skills else ["software", "developer"]
     logger.info(f"Skills received: {resume_skills}")
 

@@ -1,5 +1,3 @@
-import axios from 'axios'
-
 import type {
   AnalysisResponse,
   AnalysisStreamEvent,
@@ -18,6 +16,45 @@ interface StreamHandlers {
 
 interface RequestOptions {
   signal?: AbortSignal
+}
+
+interface JsonRequestOptions {
+  method?: 'GET' | 'POST'
+  body?: unknown
+  timeoutMs?: number
+  signal?: AbortSignal
+}
+
+/**
+ * Minimal JSON fetch wrapper.
+ *
+ * Replaces axios, which was pulled in for five calls and gave us three things
+ * over fetch: a timeout, JSON serialisation, and throwing on a non-2xx status.
+ * All three are a dozen lines. An external abort signal is chained onto the
+ * timeout controller so a caller can still cancel early.
+ */
+async function requestJson<T>(url: string, options: JsonRequestOptions = {}): Promise<T> {
+  const { method = 'GET', body, timeoutMs = 30000, signal } = options
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
+  const forwardAbort = () => controller.abort()
+  signal?.addEventListener('abort', forwardAbort)
+
+  try {
+    const response = await fetch(url, {
+      method,
+      headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
+      body: body === undefined ? undefined : JSON.stringify(body),
+      signal: controller.signal,
+    })
+    if (!response.ok) {
+      throw new Error(`${method} ${url} failed with status ${response.status}`)
+    }
+    return (await response.json()) as T
+  } finally {
+    clearTimeout(timer)
+    signal?.removeEventListener('abort', forwardAbort)
+  }
 }
 
 const BASE_URL = import.meta.env.VITE_API_URL || '/api/v1'
@@ -47,8 +84,7 @@ let wakeInFlight: Promise<boolean> | null = null
 export function wakeBackend(timeoutMs = 90000): Promise<boolean> {
   if (wakeInFlight) return wakeInFlight
 
-  wakeInFlight = axios
-    .get(HEALTH_URL, { timeout: timeoutMs })
+  wakeInFlight = requestJson<unknown>(HEALTH_URL, { timeoutMs })
     .then(() => true)
     .catch(() => false)
     .finally(() => {
@@ -171,20 +207,20 @@ export async function generateCoaching(
   payload: CoachingPayload,
   { signal }: RequestOptions = {},
 ): Promise<CoachingResponse> {
-  const response = await axios.post<CoachingResponse>(
-    `${BASE_URL}/ai-coach/generate`,
-    { mode, ...payload },
-    { timeout: 60000, signal },
-  )
-  return response.data
+  return requestJson<CoachingResponse>(`${BASE_URL}/ai-coach/generate`, {
+    method: 'POST',
+    body: { mode, ...payload },
+    timeoutMs: 60000,
+    signal,
+  })
 }
 
 export async function getCoachingModes(): Promise<Array<{ id: CoachingMode; label: string }>> {
-  const response = await axios.get<{ modes: Array<{ id: CoachingMode; label: string }> }>(
+  const data = await requestJson<{ modes: Array<{ id: CoachingMode; label: string }> }>(
     `${BASE_URL}/ai-coach/modes`,
-    { timeout: 10000 },
+    { timeoutMs: 10000 },
   )
-  return response.data.modes
+  return data.modes
 }
 
 export async function getCourseRecommendations(
@@ -193,14 +229,14 @@ export async function getCourseRecommendations(
   resumeText = '',
   { signal }: RequestOptions = {},
 ): Promise<CoursesResponse> {
-  const response = await axios.post<CoursesResponse>(
-    `${BASE_URL}/ai-coach/course-recommendations`,
-    {
+  return requestJson<CoursesResponse>(`${BASE_URL}/ai-coach/course-recommendations`, {
+    method: 'POST',
+    body: {
       skill_gap_analysis: skillGapAnalysis,
       job_description: jobDescription,
       resume_text: resumeText,
     },
-    { timeout: 45000, signal },
-  )
-  return response.data
+    timeoutMs: 45000,
+    signal,
+  })
 }

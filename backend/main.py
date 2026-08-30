@@ -9,7 +9,7 @@ from core.limiter import limiter
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from routers import ai_coach, analyze, jobs
+from routers import ai_coach, analyze
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 
@@ -182,7 +182,6 @@ async def request_middleware(request: Request, call_next):
 # ── Routers ───────────────────────────────────────────────────────────────────
 app.include_router(analyze.router, prefix="/api/v1", tags=["Analysis"])
 app.include_router(ai_coach.router, prefix="/api/v1", tags=["AI Coach"])
-app.include_router(jobs.router, prefix="/api/v1", tags=["Jobs"])
 
 
 # ── Health, usage & info endpoints ───────────────────────────────────────────
@@ -217,7 +216,6 @@ async def capabilities():
             {"path": "/api/v1/ai-coach/linkedin", "method": "POST", "desc": "Standalone LinkedIn summary generator"},
             {"path": "/api/v1/ai-coach/course-recommendations", "method": "POST", "desc": "Personalized course recommendations"},
             {"path": "/api/v1/usage-stats", "method": "GET", "desc": "Daily usage statistics monitor"},
-            {"path": "/api/v1/jobs", "method": "POST", "desc": "Live job recommendations"},
         ],
         "models": {"embedding": EMBEDDING_MODEL},
         "ats_checks": [

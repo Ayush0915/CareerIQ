@@ -90,10 +90,6 @@ services:
       - key: OPENROUTER_API_KEY
         sync: false
 
-      # Optional. Without it live job search falls back to the free Remotive API.
-      - key: RAPIDAPI_KEY
-        sync: false
-
       # Set this to match your actual Vercel domain, e.g.
       #   https://careeriq\.vercel\.app|https://careeriq-.*\.vercel\.app
       # The built-in default covers careeriq*.vercel.app and localhost. Getting

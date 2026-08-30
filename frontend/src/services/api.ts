@@ -7,7 +7,6 @@ import type {
   CoachingPayload,
   CoachingResponse,
   CoursesResponse,
-  JobsResponse,
   SkillGapAnalysis,
 } from '../types/api'
 
@@ -186,19 +185,6 @@ export async function getCoachingModes(): Promise<Array<{ id: CoachingMode; labe
     { timeout: 10000 },
   )
   return response.data.modes
-}
-
-export async function getJobRecommendations(
-  skills: string[],
-  location = 'India',
-  { signal }: RequestOptions = {},
-): Promise<JobsResponse> {
-  const response = await axios.post<JobsResponse>(
-    `${BASE_URL}/jobs`,
-    { skills, location },
-    { timeout: 65000, signal },
-  )
-  return response.data
 }
 
 export async function getCourseRecommendations(

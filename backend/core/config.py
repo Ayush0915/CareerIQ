@@ -37,7 +37,6 @@ class Settings(BaseSettings):
 
     # ── Credentials ───────────────────────────────────────────────────────
     openrouter_api_key: str = ""
-    rapidapi_key: str = ""
 
     # ── LLM ───────────────────────────────────────────────────────────────
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
@@ -196,8 +195,6 @@ class Settings(BaseSettings):
         missing = []
         if not self.openrouter_api_key:
             missing.append("OPENROUTER_API_KEY")
-        if not self.rapidapi_key:
-            missing.append("RAPIDAPI_KEY")
         return missing
 
 

@@ -8,7 +8,6 @@ import GapsATSTab from './dashboard/SkillsTab'
 // ATSBreakdown was listed here too, but SkillsTab imports it statically, so the
 // lazy wrapper did nothing except imply the bundle was smaller than it was.
 // LLMInsights was lazy-imported and never rendered at all — now deleted.
-const JobRecommendations = lazy(() => import('./JobRecommendations'))
 const CourseRecommendations = lazy(() => import('./CourseRecommendations'))
 const InterviewPrep = lazy(() => import('./InterviewPrep'))
 const AICoach = lazy(() => import('./AICoach'))
@@ -17,7 +16,7 @@ const TABS = [
   { id:'score_fit',  label:'Score & Fit', icon:BarChart3, ariaLabel:'Score and fit analysis tab' },
   { id:'gaps_ats',   label:'Gaps & ATS',  icon:Target,    ariaLabel:'Skill gaps and ATS simulation tab' },
   { id:'ai_coach',   label:'AI Coach',    icon:Brain,     ariaLabel:'AI bullet rewriter and interview coach tab' },
-  { id:'resources',  label:'Resources',   icon:BookOpen,  ariaLabel:'Job recommendations and learning resources tab' },
+  { id:'resources',  label:'Resources',   icon:BookOpen,  ariaLabel:'Learning resources tab' },
 ]
 
 const scoreColor = v => v >= 75 ? '#22C55E' : v >= 50 ? '#F59E0B' : '#EF4444'
@@ -80,16 +79,6 @@ function AICoachTab({ data }) {
 function ResourcesTab({ data }) {
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:24 }} className="animate-fade-up">
-      <div>
-        <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:14 }}>
-          <div style={{ width:28, height:28, background:'#EEF0FE', borderRadius:8, display:'flex', alignItems:'center', justifyContent:'center' }}>
-            <Briefcase size={14} color="#5147E5" aria-hidden="true" />
-          </div>
-          <h3 style={{ fontWeight:700, fontSize:'1rem', color:'#1A1D2E', margin:0 }}>Live Job Opportunities</h3>
-        </div>
-        <JobRecommendations skills={data.resume_skills} />
-      </div>
-
       <div>
         <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:14 }}>
           <div style={{ width:28, height:28, background:'#F0FDF4', borderRadius:8, display:'flex', alignItems:'center', justifyContent:'center' }}>

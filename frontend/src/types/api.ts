@@ -192,32 +192,7 @@ export interface CoachingResponse {
   content: string
 }
 
-/* ── Jobs and courses ──────────────────────────────────────────────────── */
-
-export interface Job {
-  id: string
-  title: string
-  company: string
-  location: string
-  type: string
-  category: string
-  tags: string[]
-  salary: string
-  url: string
-  posted_at: string
-  source: string
-  region: 'india' | 'remote' | 'us' | 'uk' | 'global' | string
-  logo: string
-  description: string
-  experience: number
-  remote: boolean
-  match_score: number
-}
-
-export interface JobsResponse {
-  jobs: Job[]
-  total: number
-}
+/* ── Courses ───────────────────────────────────────────────────────────── */
 
 export interface Course {
   id: string

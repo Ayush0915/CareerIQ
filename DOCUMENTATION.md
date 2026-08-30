@@ -30,12 +30,12 @@ CareerIQ is designed as a decoupled, high-performance web application consisting
                            │     FastAPI Backend      │
                            └────────────┬─────────────┘
                                         │
-             ┌──────────────────────────┼──────────────────────────┐
-             ▼                          ▼                          ▼
-   ┌───────────────────┐      ┌───────────────────┐      ┌───────────────────┐
-   │ Fast NLP Pipeline │      │ Async LLM Engine  │      │ Live Job Fetcher  │
-   │ (fastembed / bge)   │      │ (OpenRouter)      │      │ (RapidAPI JSearch)│
-   └───────────────────┘      └───────────────────┘      └───────────────────┘
+             ┌──────────────────────────┴──────────────────────────┐
+             ▼                                                     ▼
+   ┌───────────────────┐                             ┌───────────────────┐
+   │ Fast NLP Pipeline │                             │ Async LLM Engine  │
+   │ (fastembed / bge) │                             │ (OpenRouter)      │
+   └───────────────────┘                             └───────────────────┘
 ```
 
 ### 🛠 Tech Stack
@@ -43,7 +43,6 @@ CareerIQ is designed as a decoupled, high-performance web application consisting
 - **Backend**: Python 3.10+, FastAPI microservice, Pydantic data schemas, Uvicorn ASGI server
 - **AI Core / LLM Engine**: **OpenRouter** (OpenAI-compatible) with JSON-schema structured outputs, `provider.require_parameters` so only schema-enforcing endpoints are used, and model-level fallback across vendors. Model IDs are configured in `.env` — run `python scripts/check_models.py` to pick one
 - **NLP & Similarity**: fastembed (`BAAI/bge-small-en-v1.5`) with a numpy cosine implementation
-- **Job Intelligence**: RapidAPI JSearch API integration
 
 ---
 
@@ -89,9 +88,9 @@ CareerIQ/
 │   │   │   ├── CourseRecommendations.jsx # Skill gap courses
 │   │   │   └── AnalysisHistory.jsx   # LocalStorage persistent history
 │   │   ├── hooks/
-│   │   │   └── useAnalysis.js # Custom hook for analysis state management
+│   │   │   └── useAnalysis.ts # Analysis state, typed from the OpenAPI schema
 │   │   └── services/
-│   │       └── api.js         # Axios HTTP service client
+│   │       └── api.ts         # fetch-based HTTP client
 └── DOCUMENTATION.md           # Full technical documentation
 ```
 
@@ -103,10 +102,8 @@ CareerIQ/
 Create `backend/.env` based on `backend/.env.example`:
 ```env
 OPENROUTER_API_KEY=sk-or-v1-your_key_here
-RAPIDAPI_KEY=your_rapidapi_jsearch_key_here
 ```
 - **OPENROUTER_API_KEY**: Required for all AI features. Get one at [openrouter.ai/keys](https://openrouter.ai/keys).
-- **RAPIDAPI_KEY**: Required for live job search. Get a free key at [rapidapi.com](https://rapidapi.com).
 
 ### Frontend (`frontend/.env`)
 Create `frontend/.env` based on `frontend/.env.example`:
@@ -208,16 +205,6 @@ Generates bullet rewrites, interview questions, or LinkedIn summaries.
 }
 ```
 
-### 3. `POST /api/v1/jobs`
-Fetches real-time matching jobs.
-- **Request Body**:
-```json
-{
-  "skills": ["Python", "React"],
-  "location": "India"
-}
-```
-
 ---
 
 ## 🌐 Deployment Guide (Vercel & Render)
@@ -296,7 +283,6 @@ Environment variables:
 | `TRUST_PROXY_HEADERS` | `true` |
 | `MODEL_CACHE_DIR` | `/opt/render/project/src/.model-cache` |
 | `CORS_ALLOW_ORIGIN_REGEX` | must match your Vercel domain — see below |
-| `RAPIDAPI_KEY` | optional; falls back to the free Remotive API |
 
 `TRUST_PROXY_HEADERS` is the one that looks skippable and is not. Without it
 every request keys to Render's proxy IP, so `RATE_LIMIT=5/minute` becomes five

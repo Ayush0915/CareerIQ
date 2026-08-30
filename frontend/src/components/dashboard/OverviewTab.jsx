@@ -1,8 +1,6 @@
-import React, { lazy, Suspense } from 'react'
+import React from 'react'
 
-// recharts is ~100KB gzipped for one radar chart in a tab that is not always
-// opened, and this tab is imported statically, so it was in the main bundle.
-const PerformanceRadar = lazy(() => import('./PerformanceRadar'))
+import PerformanceRadar from './PerformanceRadar'
 import { CheckCircle, AlertTriangle, FileText, Award, Brain, Info } from 'lucide-react'
 import ScoreRing from '../ScoreRing'
 import Card from '../ui/Card'
@@ -116,9 +114,7 @@ export function ScoreFitTab({ data }) {
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
         <Card padding={20}>
           <p style={{ fontSize:'0.75rem', fontWeight:700, color:'#374151', marginBottom:12 }}>Performance Radar</p>
-          <Suspense fallback={<div style={{ height:200 }} className="skeleton-box" />}>
-            <PerformanceRadar data={radarData} />
-          </Suspense>
+          <PerformanceRadar data={radarData} />
         </Card>
         <Card padding={20}>
           <p style={{ fontSize:'0.75rem', fontWeight:700, color:'#374151', marginBottom:12 }}>Top Matching Segments</p>

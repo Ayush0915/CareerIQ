@@ -78,7 +78,7 @@ uv pip install -r pyproject.toml
 
 # Configure environment variables
 cp .env.example .env
-# Edit .env and insert your OPENROUTER_API_KEY (and optionally RAPIDAPI_KEY)
+# Edit .env and insert your OPENROUTER_API_KEY
 
 # Start backend server
 uvicorn main:app --reload --port 8000

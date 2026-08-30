@@ -13,6 +13,10 @@ HEADER_PATTERNS = [
     r"objective",   r"awards",      r"publications",
 ]
 
+# The sections a parser actually needs in order to file a resume correctly.
+# Everything else in HEADER_PATTERNS is optional and worth only a small bonus.
+CRITICAL_SECTIONS = ("experience", "education", "skills")
+
 CONTACT_PATTERNS = {
     "email":    r"[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}",
     "phone":    r"(\+?\d[\d\s\-().]{7,}\d)",
@@ -59,11 +63,31 @@ def _score_contact_info(text: str) -> dict:
 
 
 def _score_section_headers(text: str) -> dict:
+    """Score how well the resume is sectioned for a parser.
+
+    The score used to be the fraction of *all nine* known header patterns
+    present, while `critical_missing` only ever considered three of them. A
+    complete resume with experience, education and skills therefore scored
+    33/100 — penalised for lacking "awards" and "publications" — and reported
+    "All critical sections present." in the same breath.
+
+    That 33 was not cosmetic: section_headers carries 12% of
+    overall_ats_score, so every well-formed resume lost roughly eight points,
+    and the check surfaced in top_issues (which lists anything under 70) as an
+    issue whose own note said nothing was wrong.
+
+    Critical sections now carry the score; optional ones add a capped bonus.
+    """
     text_lower = text.lower()
     found   = [h for h in HEADER_PATTERNS if h in text_lower]
-    missing = [h for h in ["experience", "education", "skills"] if h not in text_lower]
+    missing = [h for h in CRITICAL_SECTIONS if h not in text_lower]
 
-    score = min(100, round((len(found) / len(HEADER_PATTERNS)) * 100))
+    critical_found = [h for h in CRITICAL_SECTIONS if h in text_lower]
+    optional_found = [h for h in found if h not in CRITICAL_SECTIONS]
+
+    base  = (len(critical_found) / len(CRITICAL_SECTIONS)) * 85
+    bonus = min(15, len(optional_found) * 5)
+    score = min(100, round(base + bonus))
     return {
         "score":           score,
         "headers_found":   found,

@@ -220,3 +220,59 @@ class TestATSSimulatorEdgeCases:
         dates = _score_date_consistency(resume_with_gap)
         assert dates["gap_detected"] is True
         assert dates["score"] == 75  # 85 - 10 penalty
+
+
+class TestSectionHeaderScoring:
+    """Regression tests for the section_headers scoring bug.
+
+    The score was the fraction of all nine known header patterns present, while
+    the note and critical_missing considered only three. A complete resume
+    scored 33/100 while reporting that nothing was missing, and that number fed
+    12% of overall_ats_score.
+    """
+
+    COMPLETE = """
+    Jane Doe
+    jane@example.com | 555-0100
+
+    Experience
+    - Built payment services in Python
+
+    Education
+    B.E. Computer Science, 2018
+
+    Skills
+    Python, FastAPI, PostgreSQL
+    """
+
+    def test_all_critical_sections_scores_well(self):
+        result = _score_section_headers(self.COMPLETE)
+        assert result["critical_missing"] == []
+        assert result["score"] >= 85, (
+            f"a resume with all three critical sections scored {result['score']}"
+        )
+
+    def test_score_agrees_with_its_own_note(self):
+        """The note said nothing was wrong while the score said 33."""
+        result = _score_section_headers(self.COMPLETE)
+        if not result["critical_missing"]:
+            assert result["score"] >= 85
+            assert "All critical sections present" in result["note"]
+
+    def test_missing_critical_section_scores_lower(self):
+        without_skills = self.COMPLETE.replace("Skills", "Interests")
+        complete = _score_section_headers(self.COMPLETE)
+        partial = _score_section_headers(without_skills)
+        assert "skills" in partial["critical_missing"]
+        assert partial["score"] < complete["score"]
+
+    def test_optional_sections_add_only_a_bonus(self):
+        with_extras = self.COMPLETE + "\nProjects\nAwards\nPublications\n"
+        assert _score_section_headers(with_extras)["score"] <= 100
+        assert _score_section_headers(with_extras)["score"] >= _score_section_headers(self.COMPLETE)["score"]
+
+    def test_complete_resume_is_not_reported_as_an_ats_issue(self):
+        """top_issues lists any check under 70, which is how a passing check
+        ended up rendered in the UI as something to fix."""
+        result = simulate_ats(self.COMPLETE, "Python backend engineer with FastAPI and PostgreSQL")
+        assert "All critical sections present." not in result["top_issues"]

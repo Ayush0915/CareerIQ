@@ -170,20 +170,13 @@ export type AnalysisStreamEvent = ProgressEvent | CompleteEvent | ErrorEvent
 
 /* ── Coaching ──────────────────────────────────────────────────────────── */
 
-export type CoachingMode =
-  | 'bullets'
-  | 'cover_letter'
-  | 'roadmap'
-  | 'interview'
-  | 'linkedin'
+export type CoachingMode = 'bullets' | 'roadmap'
 
 export interface CoachingPayload {
   weak_phrases: string[]
-  matching_skills: string[]
   missing_skills: string[]
   job_description: string
   resume_text: string
-  experience_level: string
 }
 
 export interface CoachingResponse {

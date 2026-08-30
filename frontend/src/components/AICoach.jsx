@@ -9,9 +9,6 @@ import { generateCoaching } from '../services/api'
 const MODES = [
   { id: 'bullets', label: 'Bullet points', blurb: 'Rewrites weak bullets with action verbs and impact' },
   { id: 'roadmap', label: '30-day roadmap', blurb: 'A focused plan for your biggest skill gaps' },
-  { id: 'interview', label: 'Interview prep', blurb: 'Likely questions for this specific role' },
-  { id: 'cover_letter', label: 'Cover letter', blurb: 'Three paragraphs, no filler' },
-  { id: 'linkedin', label: 'LinkedIn About', blurb: 'A keyword-dense profile summary' },
 ]
 
 function CopyButton({ text }) {
@@ -46,11 +43,9 @@ export default function AICoach({ analysisData }) {
 
   const payload = {
     weak_phrases: analysisData.signal_noise?.weak_phrases_found ?? [],
-    matching_skills: analysisData.matching_skills ?? [],
     missing_skills: analysisData.missing_skills ?? [],
     job_description: analysisData.job_description || '',
     resume_text: analysisData.resume_text || '',
-    experience_level: analysisData.experience_info?.level || 'mid',
   }
 
   const run = async (mode) => {

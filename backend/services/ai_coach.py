@@ -67,38 +67,6 @@ Then one line: **Key change:** [what made these stronger]"""
 
 # ── Cover letter ──────────────────────────────────────────────────────────────
 
-async def generate_cover_letter(
-    matching_skills: list[str],
-    missing_skills: list[str],
-    job_description: str,
-    resume_text: str,
-) -> str:
-    prompt = f"""You are an executive recruiter writing a cover letter for a strong candidate.
-
-Matching skills: {", ".join(matching_skills[:10])}
-Skill gaps to address honestly: {", ".join(missing_skills[:5]) if missing_skills else "none significant"}
-
-JOB DESCRIPTION:
-{job_description[:700]}
-
-RESUME CONTEXT:
-{redact_for_prompt(resume_text)[:600]}
-
-Write a 3-paragraph cover letter. Rules:
-- Paragraph 1 (2-3 sentences): hook naming the specific role and the most relevant achievement
-- Paragraph 2 (3-4 sentences): two technical contributions with measurable impact
-- Paragraph 3 (2 sentences): forward-looking close with a clear call to action
-- Tone: confident, direct, human — not generic
-- Never use: "I am writing to", "passionate about", "team player", "hard worker"
-- At most 200 words
-- Address any skill gap briefly in paragraph 2 as "actively building X"
-- Use [Hiring Manager] as the salutation placeholder"""
-
-    return await _safe_text(prompt, max_tokens=450)
-
-
-# ── Skill roadmap ─────────────────────────────────────────────────────────────
-
 async def generate_skill_roadmap(missing_skills: list[str], job_description: str) -> str:
     if not missing_skills:
         return (
@@ -139,82 +107,17 @@ Keep each section under 40 words. Name real tools. Never fabricate a URL."""
 
 # ── Interview prep ────────────────────────────────────────────────────────────
 
-async def generate_interview_prep(
-    matching_skills: list[str],
-    missing_skills: list[str],
-    job_description: str,
-    experience_level: str = "mid",
-) -> str:
-    prompt = f"""You are a technical interview coach.
-
-Candidate level: {experience_level}
-Their strong skills: {", ".join(matching_skills[:8])}
-Their weak areas: {", ".join(missing_skills[:5])}
-
-JOB DESCRIPTION:
-{job_description[:600]}
-
-Generate an interview prep guide:
-
-**5 Likely Technical Questions** (with what each is testing):
-1. [Question] — Tests: [concept]
-2. [Question] — Tests: [concept]
-3. [Question] — Tests: [concept]
-4. [Question] — Tests: [concept]
-5. [Question] — Tests: [concept]
-
-**3 Behavioral Questions** (STAR method):
-1. [Question]
-2. [Question]
-3. [Question]
-
-**Red Flag to Prepare For:**
-[The gap the interviewer is most likely to probe]
-
-**One-Line Prep Tip:**
-[The single most impactful thing to review beforehand]"""
-
-    return await _safe_text(prompt, max_tokens=600)
-
-
-# ── LinkedIn summary ──────────────────────────────────────────────────────────
-
-async def generate_linkedin_summary(
-    matching_skills: list[str],
-    resume_text: str,
-    job_description: str,
-) -> str:
-    prompt = f"""You are a LinkedIn profile optimization expert.
-
-Skills: {", ".join(matching_skills[:12])}
-Target role context: {job_description[:400]}
-Resume excerpt: {redact_for_prompt(resume_text)[:700]}
-
-Write a LinkedIn About section. Rules:
-- 3 short paragraphs, at most 220 words total
-- Open with a bold statement about what this person builds or solves
-- Paragraph 2: two or three technical achievements with numbers drawn from the resume
-- Paragraph 3: what they are looking for next, plus an invitation to connect
-- End with 5-7 keyword-rich skill tags on a new line, each prefixed with #
-- Professional but human, first person
-- Do not start with "I am a" and do not lead with a job title"""
-
-    return await _safe_text(prompt, max_tokens=400)
-
-
 # ── Dispatcher ────────────────────────────────────────────────────────────────
 
-# One call per requested mode, generated on demand.  The previous design fired
-# all five concurrently on every visit to the tab, which on the free tier burns
-# five of roughly twenty requests per minute for output the user may not read.
-COACHING_MODES = ("bullets", "cover_letter", "roadmap", "interview", "linkedin")
+# One call per requested mode, generated on demand. Cover letters, LinkedIn
+# summaries and interview questions were dropped: each cost a request from a
+# hard daily budget to produce output any chat assistant writes just as well.
+# Both remaining modes are anchored to the user's own resume text.
+COACHING_MODES = ("bullets", "roadmap")
 
 MODE_LABELS = {
     "bullets": "Improved bullet points",
-    "cover_letter": "Cover letter",
     "roadmap": "30-day skill roadmap",
-    "interview": "Interview prep",
-    "linkedin": "LinkedIn summary",
 }
 
 
@@ -222,27 +125,18 @@ async def generate_one(
     mode: str,
     *,
     weak_phrases: list[str] | None = None,
-    matching_skills: list[str] | None = None,
     missing_skills: list[str] | None = None,
     job_description: str = "",
     resume_text: str = "",
-    experience_level: str = "mid",
 ) -> str:
     """Generate exactly one coaching artefact."""
     weak = weak_phrases or []
-    matching = matching_skills or []
     missing = missing_skills or []
 
     if mode == "bullets":
         return await rewrite_bullets(weak, resume_text, job_description)
-    if mode == "cover_letter":
-        return await generate_cover_letter(matching, missing, job_description, resume_text)
     if mode == "roadmap":
         return await generate_skill_roadmap(missing, job_description)
-    if mode == "interview":
-        return await generate_interview_prep(matching, missing, job_description, experience_level)
-    if mode == "linkedin":
-        return await generate_linkedin_summary(matching, resume_text, job_description)
 
     raise ValueError(f"Unknown coaching mode {mode!r}; expected one of {COACHING_MODES}")
 

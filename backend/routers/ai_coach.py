@@ -18,18 +18,16 @@ router = APIRouter()
 class CoachingRequest(BaseModel):
     """One coaching artefact, generated on demand.
 
-    Replaces the five-call bundle. That fired every generator on every visit to
-    the tab, which costs five of roughly twenty free requests per minute for
+    Replaces the five-call bundle, which fired every generator on every visit
+    to the tab and cost five of roughly twenty free requests per minute for
     output the user may never scroll to.
     """
 
     mode: str = Field(description=f"One of: {', '.join(COACHING_MODES)}")
     weak_phrases: list[str] = []
-    matching_skills: list[str] = []
     missing_skills: list[str] = []
     job_description: str = ""
     resume_text: str = ""
-    experience_level: str = "mid"
 
 
 class CoachingResponse(BaseModel):
@@ -67,11 +65,9 @@ async def generate(request: Request, req: CoachingRequest):
         content = await generate_one(
             req.mode,
             weak_phrases=req.weak_phrases,
-            matching_skills=req.matching_skills,
             missing_skills=req.missing_skills,
             job_description=req.job_description,
             resume_text=req.resume_text,
-            experience_level=req.experience_level,
         )
     except Exception as exc:
         logger.exception("Coaching generation failed for mode %s", req.mode)

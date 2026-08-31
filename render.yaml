@@ -1,7 +1,7 @@
 # Render Blueprint — backend only. The frontend goes to Vercel (frontend/vercel.json).
 #
 # Deploy: Render Dashboard -> New -> Blueprint -> pick this repo.
-# Everything below is applied automatically except the three secrets marked
+# Everything below is applied automatically except the two secrets marked
 # `sync: false`, which Render prompts for on first deploy.
 #
 # Why these exact values — each one is a bug that was in DOCUMENTATION.md:
@@ -12,8 +12,13 @@
 #                     anything. The start command uses --app-dir instead, which
 #                     is what actually needs to point at backend/.
 #
-#   pip install uv    The guide called `uv` directly. Render's Python runtime
-#                     ships python3-pip and python3-setuptools, not uv.
+#   uv sync           Render's Python runtime provides `uv`, so the build
+#                     installs straight from uv.lock — reproducible, and no
+#                     bootstrap step. An earlier revision ran
+#                     `pip install uv && uv pip install --system` because uv
+#                     was assumed absent; that is no longer needed. Because
+#                     `uv sync` installs into .venv rather than system site
+#                     packages, the start command must go through `uv run`.
 #
 #   workers: 1        The LLM output-mode cache, the slowapi rate limiter and
 #                     the usage counters are all per-process. A second worker

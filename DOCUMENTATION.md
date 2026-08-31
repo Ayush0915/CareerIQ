@@ -24,7 +24,7 @@ CareerIQ is designed as a decoupled, high-performance web application consisting
                            │      React 18 SPA        │
                            │  (Vite + Tailwind CSS)   │
                            └────────────┬─────────────┘
-                                        │ HTTP / JSON
+                                        │ HTTP / SSE
                                         ▼
                            ┌──────────────────────────┐
                            │     FastAPI Backend      │
@@ -38,11 +38,22 @@ CareerIQ is designed as a decoupled, high-performance web application consisting
    └───────────────────┘                             └───────────────────┘
 ```
 
+`POST /api/v1/analyze` returns a `StreamingResponse` of Server-Sent Events, not a
+single JSON body. The CPU-bound stages run in a thread executor so the event loop
+stays free to flush progress events while an analysis is in flight.
+
 ### 🛠 Tech Stack
-- **Frontend**: React 18 SPA, Vite, Tailwind CSS, Lucide React icons
-- **Backend**: Python 3.10+, FastAPI microservice, Pydantic data schemas, Uvicorn ASGI server
-- **AI Core / LLM Engine**: **OpenRouter** (OpenAI-compatible) with JSON-schema structured outputs, `provider.require_parameters` so only schema-enforcing endpoints are used, and model-level fallback across vendors. Model IDs are configured in `.env` — run `python scripts/check_models.py` to pick one
-- **NLP & Similarity**: fastembed (`BAAI/bge-small-en-v1.5`) with a numpy cosine implementation
+
+- **Frontend**: React 18 SPA, Vite 5, Tailwind CSS 3.4, Lucide React icons,
+  `@tanstack/react-query` for server state, `react-dropzone` for uploads,
+  TypeScript for the hooks/services/types layer. Exactly matches
+  `frontend/package.json` — there is no charting library and no HTTP client
+  dependency; the radar is inline SVG and the client uses `fetch`.
+- **Backend**: Python 3.10+, FastAPI, Pydantic v2 schemas, Uvicorn ASGI server,
+  slowapi for rate limiting.
+- **AI Core / LLM Engine**: **OpenRouter** (OpenAI-compatible) with JSON-schema structured outputs, `provider.require_parameters` so only schema-enforcing endpoints are used, and model-level fallback across vendors. Model IDs are configured in `.env` — run `python scripts/check_models.py` to pick one.
+- **NLP & Similarity**: fastembed (`BAAI/bge-small-en-v1.5`) with a numpy cosine implementation.
+- **Tooling**: `uv` for dependency management, `pytest` for tests, `ruff` for lint.
 
 ---
 
@@ -50,48 +61,97 @@ CareerIQ is designed as a decoupled, high-performance web application consisting
 
 ```
 CareerIQ/
+├── pyproject.toml             # Dependencies, pytest & ruff config (repo root)
+├── uv.lock                    # Resolved dependency lockfile
+├── render.yaml                # Render Blueprint for the backend service
+├── README.md
+├── DOCUMENTATION.md           # This file
 ├── backend/
 │   ├── main.py                # FastAPI entrypoint, middleware & global handlers
-│   ├── requirements.txt       # Pinned Python package dependencies
 │   ├── .env.example           # Backend environment template
+│   ├── skills_database.csv    # Skill taxonomy used by the extractor
+│   ├── core/
+│   │   ├── config.py          # Pydantic settings — all env vars live here
+│   │   ├── limiter.py         # slowapi rate limiter
+│   │   ├── llm.py             # OpenRouter client, output-mode ladder & TTL cache
+│   │   └── redact.py          # Strips resume PII before any prompt leaves
 │   ├── models/
-│   │   └── schemas.py         # Pydantic data models & request/response schemas
+│   │   └── schemas.py         # Pydantic request/response models
 │   ├── routers/
-│   │   ├── analyze.py         # Resume parsing and scoring endpoints
-│   │   ├── ai_coach.py        # AI coaching, interview prep, and rewrite endpoints
-│   │   └── jobs.py            # Live job recommendation endpoints
+│   │   ├── analyze.py         # SSE analysis endpoint
+│   │   └── ai_coach.py        # Coaching modes & course recommendations
 │   ├── services/
 │   │   ├── parser.py          # PDF/DOCX text extractors with fallbacks
 │   │   ├── ats_simulator.py   # 8-point ATS check engine with evidence extraction
-│   │   ├── llm_evaluator.py   # Schema-constrained evaluation + TTL cache
-│   │   ├── job_fetcher.py     # Real-time job search & skill-match calculator
-│   │   ├── similarity.py      # Vector similarity scoring via SentenceTransformers
+│   │   ├── llm_evaluator.py   # Schema-constrained master evaluation
+│   │   ├── ai_coach.py        # Bullet rewrite & roadmap generators
+│   │   ├── similarity.py      # Vector similarity via fastembed + numpy cosine
+│   │   ├── scoring.py         # compute_fit, assess_level, JD seniority
+│   │   ├── evidence.py        # Demonstrated vs merely-listed skills
+│   │   ├── experience_detector.py  # Years of experience, scoped to the Experience section
+│   │   ├── section_parser.py  # Section boundaries & per-section scores
+│   │   ├── signal_noise_analyzer.py # Clarity, weak phrasing, quantification
 │   │   ├── skill_extractor.py # Regex + taxonomy skill extraction
-│   │   └── skill_gap_analyzer.py # Critical/Important/Optional gap classifier
+│   │   ├── skill_gap_analyzer.py   # Critical/Important/Optional gap classifier
+│   │   ├── recommender.py     # Feedback, matching & missing skills
+│   │   └── aliases.py         # Skill alias expansion
 │   └── utils/
 │       └── text_cleaner.py    # Text normalization & cleaning utilities
 ├── frontend/
 │   ├── package.json           # React dependencies & scripts
 │   ├── vite.config.js         # Vite configuration with proxy rules
+│   ├── tailwind.config.js     # Tailwind theme
+│   ├── tsconfig.json          # TypeScript config
 │   ├── vercel.json            # Vercel SPA rewrite configuration
+│   ├── openapi.json           # Schema snapshot for `npm run gen:types`
 │   ├── .env.example           # Frontend environment template
-│   ├── src/
-│   │   ├── App.jsx            # Main React application shell
-│   │   ├── index.css          # Core CSS design system & Tailwind setup
-│   │   ├── components/
-│   │   │   ├── ResultsDashboard.jsx  # Main tabbed dashboard
-│   │   │   ├── ATSBreakdown.jsx      # 8-point ATS checklist & evidence UI
-│   │   │   ├── LLMInsights.jsx       # AI recommendations & score feedback
-│   │   │   ├── AICoach.jsx           # Bullet rewriter & LinkedIn generator
-│   │   │   ├── InterviewPrep.jsx     # AI interview question generator
-│   │   │   ├── JobRecommendations.jsx# Live jobs list
-│   │   │   ├── CourseRecommendations.jsx # Skill gap courses
-│   │   │   └── AnalysisHistory.jsx   # LocalStorage persistent history
-│   │   ├── hooks/
-│   │   │   └── useAnalysis.ts # Analysis state, typed from the OpenAPI schema
-│   │   └── services/
-│   │       └── api.ts         # fetch-based HTTP client
-└── DOCUMENTATION.md           # Full technical documentation
+│   └── src/
+│       ├── App.jsx            # Main React application shell
+│       ├── main.tsx           # Entry point & QueryClient provider
+│       ├── index.css          # Core CSS design system & Tailwind setup
+│       ├── vite-env.d.ts      # Vite ambient types (incl. VITE_API_URL)
+│       ├── components/
+│       │   ├── UploadSection.jsx     # Dropzone + JD input
+│       │   ├── LoadingScreen.jsx     # SSE stage progress
+│       │   ├── ResultsDashboard.jsx  # Main tabbed dashboard
+│       │   ├── ATSBreakdown.jsx      # 8-point ATS checklist & evidence UI
+│       │   ├── AICoach.jsx           # Bullet rewriter & 30-day roadmap
+│       │   ├── InterviewPrep.jsx     # Interview questions from the LLM evaluation
+│       │   ├── CourseRecommendations.jsx # Skill gap courses
+│       │   ├── KeywordDiff.jsx       # Matching vs missing keywords
+│       │   ├── AnalysisHistory.jsx   # LocalStorage persistent history
+│       │   ├── ScoreRing.jsx         # Circular score gauge
+│       │   ├── SkillBadge.jsx        # Skill pill
+│       │   ├── dashboard/
+│       │   │   ├── OverviewTab.jsx       # Score & fit overview
+│       │   │   ├── SkillsTab.jsx         # Skills and gaps
+│       │   │   ├── ScoreSidebar.jsx      # Accordion score breakdown
+│       │   │   ├── AccordionSection.jsx  # Collapsible section primitive
+│       │   │   └── PerformanceRadar.jsx  # Inline SVG radar (no chart library)
+│       │   └── ui/
+│       │       ├── Card.jsx
+│       │       ├── Badge.jsx
+│       │       └── ScoreBar.jsx
+│       ├── hooks/
+│       │   ├── useAnalysis.ts   # Analysis state, typed from the OpenAPI schema
+│       │   ├── useRemoteData.ts # Query wrapper for coach/course endpoints
+│       │   └── useTypewriter.js # Text reveal animation
+│       ├── services/
+│       │   └── api.ts           # fetch-based HTTP client + SSE reader
+│       └── types/
+│           └── api.ts           # Shared response types
+├── evals/
+│   ├── README.md              # How to run the harness
+│   ├── run.py                 # Deterministic pipeline evaluation
+│   ├── bakeoff.py             # Model comparison
+│   ├── dataset.py             # Fixture loading
+│   ├── metrics.py             # Scoring metrics
+│   ├── parse_recall.py        # Parser recall measurement
+│   └── data/                  # seed.jsonl, stress_a.jsonl, stress_b.jsonl
+├── scripts/
+│   ├── check_models.py        # Validate/audit OpenRouter model reachability
+│   └── prefetch_model.py      # Warm the embedding model at build time
+└── tests/                     # pytest suite (conftest.py + test_*.py)
 ```
 
 ---
@@ -99,11 +159,19 @@ CareerIQ/
 ## 🔑 Environment Configuration
 
 ### Backend (`backend/.env`)
-Create `backend/.env` based on `backend/.env.example`:
+Create `backend/.env` based on `backend/.env.example`, which documents every
+variable inline:
 ```env
 OPENROUTER_API_KEY=sk-or-v1-your_key_here
+PRIMARY_MODEL=nvidia/nemotron-3-super-120b-a12b:free
+FALLBACK_MODELS=...
+STRUCTURED_OUTPUT_MODE=auto
+ENVIRONMENT=development
+TRUST_PROXY_HEADERS=false
+RATE_LIMIT=5/minute
 ```
 - **OPENROUTER_API_KEY**: Required for all AI features. Get one at [openrouter.ai/keys](https://openrouter.ai/keys).
+- All settings are defined in `backend/core/config.py`.
 
 ### Frontend (`frontend/.env`)
 Create `frontend/.env` based on `frontend/.env.example`:
@@ -122,26 +190,19 @@ cd CareerIQ
 ```
 
 ### Step 2: Start Backend Server
+
+`pyproject.toml` and `scripts/` live at the **repository root**. Install from the
+root and point the server at `backend/` with `--app-dir`:
+
 ```bash
-cd backend
-
-# Create virtual environment
-python -m venv venv
-
-# Activate virtual environment
-# Windows (PowerShell):
-.\venv\Scripts\Activate.ps1
-# Linux / macOS:
-source venv/bin/activate
-
-# Install requirements
-uv pip install -r pyproject.toml
+# From the repository root
+uv sync
 
 # Create .env file and fill keys
-cp .env.example .env
+cp backend/.env.example backend/.env
 
 # Run FastAPI dev server
-uvicorn main:app --reload --port 8000
+uv run uvicorn main:app --app-dir backend --reload --port 8000
 ```
 - Interactive Swagger API docs: [http://localhost:8000/docs](http://localhost:8000/docs)
 - Health check: [http://localhost:8000/health](http://localhost:8000/health)
@@ -162,16 +223,37 @@ npm run dev
 ```
 - Application UI: [http://localhost:5173](http://localhost:5173)
 
+### Step 4: Tests, Lint & Types
+```bash
+# From the repository root
+uv run pytest
+uv run ruff check .
+
+cd frontend
+npm run typecheck
+npm run build
+```
+
 ---
 
 ## 📡 API Specification
 
+All application endpoints are mounted under the `/api/v1` prefix
+(`backend/main.py`). `/health` is mounted at the root.
+
 ### 1. `POST /api/v1/analyze`
-Full resume and Job Description analysis. Accepts multipart form data.
+Full resume and Job Description analysis. Accepts multipart form data and
+responds with **Server-Sent Events**, not a single JSON body.
 - **Request Body**:
   - `file`: PDF or DOCX file (max 5 MB)
   - `job_description`: Target job text string (min 30 chars)
-- **Response (`200 OK`)**:
+- **Response (`200 OK`, `text/event-stream`)**: each line is `data: {...}` carrying one of
+```json
+{ "event": "progress", "progress": 45, "message": "Extracting your skills" }
+{ "event": "complete", "progress": 100, "result": { "...": "AnalysisResponse" } }
+{ "event": "error",    "message": "..." }
+```
+- The `complete` event's `result` is the full `AnalysisResponse`:
 ```json
 {
   "semantic_match_score": 82.5,
@@ -180,6 +262,22 @@ Full resume and Job Description analysis. Accepts multipart form data.
   "jd_skills": ["Python", "FastAPI", "Kubernetes"],
   "matching_skills": ["Python", "FastAPI"],
   "missing_skills": ["Kubernetes"],
+  "fit": {
+    "overall": 78.8,
+    "semantic": 67.8,
+    "coverage": 83.3,
+    "clarity": 100.0,
+    "evidence_ratio": 0.69,
+    "unsupported_skills": ["terraform"]
+  },
+  "experience_info": {
+    "detected_years": 8,
+    "required_years": 5,
+    "level": "senior",
+    "meets_requirement": true,
+    "gap_years": 0,
+    "low_confidence": false
+  },
   "ats_simulation": {
     "overall_ats_score": 85.0,
     "verdict": "ATS-Ready",
@@ -193,17 +291,43 @@ Full resume and Job Description analysis. Accepts multipart form data.
   }
 }
 ```
+> `experience_info.low_confidence` is `true` when the resume had no recognisable
+> Experience section, so the year count came from the whole document and may
+> include education dates. Treat the number as indicative in that case.
 
-### 2. `POST /api/v1/ai-coach`
-Generates bullet rewrites, interview questions, or LinkedIn summaries.
+### 2. `GET /api/v1/ai-coach/modes`
+Lists the coaching modes the server supports, so the UI is not hardcoded.
+```json
+{ "modes": [
+  { "id": "bullets", "label": "Improved bullet points" },
+  { "id": "roadmap", "label": "30-day skill roadmap" }
+] }
+```
+
+### 3. `POST /api/v1/ai-coach/generate`
+Generates one coaching artefact per call — one request per mode, on demand.
 - **Request Body**:
 ```json
 {
-  "mode": "rewrite",
-  "text": "Created backend APIs for the system",
-  "job_description": "Senior Software Engineer"
+  "mode": "bullets",
+  "weak_phrases": ["Developed backend APIs for the system"],
+  "missing_skills": ["Kubernetes"],
+  "job_description": "Senior Software Engineer...",
+  "resume_text": "..."
 }
 ```
+
+### 4. `POST /api/v1/ai-coach/course-recommendations`
+Personalized learning resources for the detected skill gaps. Accepts either a
+`skill_gap_analysis` object or explicit `critical` / `important` / `optional`
+lists, plus optional `job_description` and `resume_text`.
+
+### 5. System endpoints
+| Path | Method | Purpose |
+|---|---|---|
+| `/health` | GET | Liveness probe used by Render's health check |
+| `/api/v1/usage-stats` | GET | Daily usage counters |
+| `/api/v1/capabilities` | GET | Advertised endpoints, embedding model, ATS check names |
 
 ---
 
@@ -211,7 +335,7 @@ Generates bullet rewrites, interview questions, or LinkedIn summaries.
 
 ### Architecture Strategy
 - **Frontend (Vite + React)**: Deployed to **Vercel** for ultra-fast CDN delivery.
-- **Backend (FastAPI)**: Deployed to **Render / Koyeb** as a plain Python Web Service (no containers).
+- **Backend (FastAPI)**: Deployed to **Render** as a plain Python Web Service (no containers).
 
 ---
 
@@ -251,7 +375,8 @@ The repository ships a Blueprint. Prefer it over filling the form by hand:
 
 **Render Dashboard → New + → Blueprint → select this repo.** `render.yaml` sets
 the root directory, build command, start command, health check and every
-non-secret environment variable. Render prompts for the three secrets.
+non-secret environment variable. Render prompts for the two secrets marked
+`sync: false` (`OPENROUTER_API_KEY` and `CORS_ALLOW_ORIGIN_REGEX`).
 
 To configure it manually instead — note that these differ from the obvious
 choices, and each difference is a build or runtime failure:
@@ -260,16 +385,18 @@ choices, and each difference is a build or runtime failure:
 |---|---|
 | Root Directory | *(blank — the repo root)* |
 | Environment | `Python 3` |
-| Build Command | `pip install uv && uv pip install --system -r pyproject.toml && python scripts/prefetch_model.py` |
-| Start Command | `uvicorn main:app --app-dir backend --host 0.0.0.0 --port $PORT --workers 1 --proxy-headers --forwarded-allow-ips='*'` |
+| Build Command | `uv sync --frozen --no-dev && uv run python scripts/prefetch_model.py` |
+| Start Command | `uv run uvicorn main:app --app-dir backend --host 0.0.0.0 --port $PORT --workers 1 --proxy-headers --forwarded-allow-ips='*'` |
 | Health Check Path | `/health` |
 
 - **Root Directory must be blank, not `backend`.** `pyproject.toml` and
   `scripts/` live at the repo root; with the root set to `backend` the build
   command cannot find either and fails before installing anything.
   `--app-dir backend` is what points the *start* command at the app.
-- **`pip install uv` first.** Render's Python runtime ships `python3-pip` and
-  `python3-setuptools`. It does not ship `uv`.
+- **`uv run` on the start command is not optional.** `uv sync` installs into
+  `.venv`, not system site packages, so a bare `uvicorn` is not on PATH. These
+  are the exact commands `render.yaml` uses, which is the configuration the
+  service is known to build and boot with.
 - **`--workers 1` is not optional.** The LLM output-mode cache, the rate limiter
   and the usage counters are all per-process. A second worker halves the
   effective rate limit and makes each worker re-negotiate the output ladder.
@@ -282,6 +409,8 @@ Environment variables:
 | `ENVIRONMENT` | `production` |
 | `TRUST_PROXY_HEADERS` | `true` |
 | `MODEL_CACHE_DIR` | `/opt/render/project/src/.model-cache` |
+| `RATE_LIMIT` | `5/minute` |
+| `EMBEDDING_THREADS` | `1` |
 | `CORS_ALLOW_ORIGIN_REGEX` | must match your Vercel domain — see below |
 
 `TRUST_PROXY_HEADERS` is the one that looks skippable and is not. Without it
@@ -294,6 +423,11 @@ anywhere the app is reachable directly.
 from build to runtime. Left at its default, a cold start may re-download 130MB
 from HuggingFace.
 
+`EMBEDDING_THREADS=1` because onnxruntime sizes its thread pool from the host's
+core count, which on a shared 0.1-CPU instance is eight threads contending for a
+tenth of a core — slower than one thread owning it outright, and the contention
+is what starves the event loop.
+
 Note the service URL (e.g. `https://careeriq-api.onrender.com`).
 
 #### 2. Frontend on Vercel
@@ -304,6 +438,8 @@ Note the service URL (e.g. `https://careeriq-api.onrender.com`).
    Output `dist`.
 4. Environment variable `VITE_API_URL` = `https://careeriq-api.onrender.com/api/v1`
    (keep the `/api/v1` suffix — it is the whole base path the client uses).
+   It is read at **build** time, so setting it after a deploy does nothing until
+   you redeploy.
 5. Deploy, then set `CORS_ALLOW_ORIGIN_REGEX` on the Render service to match the
    domain Vercel gave you, and redeploy the backend.
 
@@ -346,6 +482,14 @@ The free instance is 512 MB. This fits at one worker and would not fit at two.
 #### Q: Vercel routes give 404 on page refresh.
 - **Cause**: SPA route missing rewrite configuration.
 - **Solution**: Ensure `frontend/vercel.json` exists with rewrites to `/index.html`.
+
+#### Q: The deployed frontend gets HTML back instead of JSON from `/analyze`.
+- **Cause**: `VITE_API_URL` was not set at build time, so the client fell back to
+  the relative `/api/v1`. `vercel.json` rewrites every unmatched path to
+  `index.html`, so the request resolves to the SPA shell and the SSE reader
+  fails on markup.
+- **Solution**: set `VITE_API_URL` in the Vercel project and **redeploy** — the
+  value is baked into the bundle at build time.
 
 #### Q: CORS error when the frontend calls the backend.
 - **Cause**: `CORS_ALLOW_ORIGIN_REGEX` does not match the deployed domain. The

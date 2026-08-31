@@ -210,12 +210,12 @@ async def capabilities():
 
     return {
         "endpoints": [
-            {"path": "/api/v1/analyze", "method": "POST", "desc": "Full resume + JD analysis"},
-            {"path": "/api/v1/ai-coach", "method": "POST", "desc": "Bullet rewrites, cover letter, roadmap, interview prep, LinkedIn"},
-            {"path": "/api/v1/ai-coach/interview-prep", "method": "POST", "desc": "Standalone interview question generator"},
-            {"path": "/api/v1/ai-coach/linkedin", "method": "POST", "desc": "Standalone LinkedIn summary generator"},
+            {"path": "/api/v1/analyze", "method": "POST", "desc": "Full resume + JD analysis (server-sent events)"},
+            {"path": "/api/v1/ai-coach/modes", "method": "GET", "desc": "Coaching modes this server supports"},
+            {"path": "/api/v1/ai-coach/generate", "method": "POST", "desc": "One coaching artefact per call: bullet rewrites or 30-day roadmap"},
             {"path": "/api/v1/ai-coach/course-recommendations", "method": "POST", "desc": "Personalized course recommendations"},
             {"path": "/api/v1/usage-stats", "method": "GET", "desc": "Daily usage statistics monitor"},
+            {"path": "/health", "method": "GET", "desc": "Liveness probe"},
         ],
         "models": {"embedding": EMBEDDING_MODEL},
         "ats_checks": [

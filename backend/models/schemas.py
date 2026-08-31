@@ -44,6 +44,10 @@ class ExperienceInfo(BaseModel):
     level:             str
     meets_requirement: bool
     gap_years:         int
+    # Set when the resume had no recognisable Experience section, so the years
+    # were counted across the whole document and may include education dates.
+    # Defaults to False so existing callers constructing this model still work.
+    low_confidence:    bool = False
 
 
 class SectionFeedback(BaseModel):

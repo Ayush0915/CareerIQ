@@ -7,6 +7,7 @@ low score.
 """
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import logging
 import time
@@ -124,13 +125,27 @@ async def llm_master_evaluate(
         return None
 
     try:
-        result = await llm.complete_json(
-            build_prompt(resume_text, job_description, contact_info),
-            LLMEvaluation,
-            max_tokens=2000,
-            temperature=0.1,
-            schema_name="resume_evaluation",
+        # Bounded: /analyze awaits this branch inside asyncio.gather, and the
+        # browser sets no timeout on the analysis stream at all — so without a
+        # ceiling a slow provider holds the whole report open indefinitely and
+        # the user never sees a result. The LLM section is optional, so timing
+        # out to None is the intended degradation.
+        result = await asyncio.wait_for(
+            llm.complete_json(
+                build_prompt(resume_text, job_description, contact_info),
+                LLMEvaluation,
+                max_tokens=2000,
+                temperature=0.1,
+                schema_name="resume_evaluation",
+            ),
+            timeout=settings.llm_deadline_s,
         )
+    except asyncio.TimeoutError:
+        logger.error(
+            "LLM evaluation exceeded %.0fs — returning the analysis without it",
+            settings.llm_deadline_s,
+        )
+        return None
     except llm.LLMPolicyError as exc:
         logger.error("LLM evaluation blocked by account policy:\n%s", exc)
         return None

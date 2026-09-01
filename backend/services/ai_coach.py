@@ -6,15 +6,22 @@ schema-constrained call rather than regex-scraping a JSON array out of prose.
 """
 from __future__ import annotations
 
+import asyncio
 import logging
 
 from core import llm
+from core.config import settings
 from core.redact import redact_for_prompt
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
 UNAVAILABLE = "Could not generate this right now. Check the API key in backend/.env and try again."
+
+# Ceiling on one coaching call. Defined in core.config so the analysis path and
+# the coaching path cannot drift apart; see the comment there for why an
+# unbounded LLM call is the defect this closes.
+LLM_DEADLINE_S = settings.llm_deadline_s
 
 
 async def _safe_text(prompt: str, *, max_tokens: int) -> str:
@@ -25,7 +32,12 @@ async def _safe_text(prompt: str, *, max_tokens: int) -> str:
     internals to the user.
     """
     try:
-        return await llm.complete_text(prompt, max_tokens=max_tokens)
+        return await asyncio.wait_for(
+            llm.complete_text(prompt, max_tokens=max_tokens), timeout=LLM_DEADLINE_S
+        )
+    except asyncio.TimeoutError:
+        logger.error("Coaching generation exceeded %.0fs — giving up", LLM_DEADLINE_S)
+        return UNAVAILABLE
     except llm.LLMError as exc:
         logger.error("Coaching generation failed: %s", exc)
         return UNAVAILABLE
@@ -294,14 +306,22 @@ never a URL, because a fabricated link is worse than no link.
 Make each `desc` specific to this candidate's background and target role."""
 
     try:
-        result = await llm.complete_json(
-            prompt,
-            CourseRecommendations,
-            max_tokens=2000,
-            temperature=0.3,
-            models=None,
-            schema_name="course_recommendations",
+        result = await asyncio.wait_for(
+            llm.complete_json(
+                prompt,
+                CourseRecommendations,
+                max_tokens=2000,
+                temperature=0.3,
+                models=None,
+                schema_name="course_recommendations",
+            ),
+            timeout=LLM_DEADLINE_S,
         )
+    except asyncio.TimeoutError:
+        logger.error(
+            "Course recommendations exceeded %.0fs — using fallback", LLM_DEADLINE_S
+        )
+        return _fallback_course_recommendations(gaps)
     except llm.LLMError as exc:
         logger.error("Course recommendations failed, using fallback: %s", exc)
         return _fallback_course_recommendations(gaps)

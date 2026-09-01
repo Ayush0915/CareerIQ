@@ -29,6 +29,12 @@ export function useCourses(
     enabled: gapCount > 0,
     // Each call costs an LLM request, so never refetch one we already have.
     staleTime: Infinity,
-    retry: 1,
+    // No automatic retry. This call is slow and expensive: a failure here is
+    // almost always the provider being slow, and retrying doubles both the
+    // wait the user sits through and the LLM requests spent from a ~20/minute
+    // budget. It turned a 45s wait into 100s of loading before the error card
+    // appeared. The backend now falls back inside 30s, and the error card has
+    // its own retry button if the user actually wants another attempt.
+    retry: false,
   })
 }

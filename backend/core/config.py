@@ -102,6 +102,16 @@ class Settings(BaseSettings):
     llm_timeout_s: float = 60.0
     llm_max_retries: int = 3
     llm_retry_backoff_s: float = 1.5
+
+    # Ceiling on one whole LLM feature, however the ladder behaves underneath.
+    # The three settings above compound: each upstream request gets its own
+    # llm_timeout_s, is retried llm_max_retries times, and complete_json may
+    # walk three output-mode rungs — so one slow free-tier provider can hold a
+    # request for minutes. Every caller of the LLM is optional by design, so a
+    # deadline that degrades to the deterministic result beats an open-ended
+    # wait. Keep it below the tightest browser timeout (45s, course
+    # recommendations); a healthy free-tier call returns in roughly 9s.
+    llm_deadline_s: float = 30.0
     llm_cache_ttl_s: int = 600
     llm_cache_max_entries: int = 200
 
